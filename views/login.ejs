@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamSeat - Sign In</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="shortcut icon" href="https://img.icons8.com/pulsar-gradient/48/quiz.png" type="image/x-icon">
+</head>
+
+<body class="auth-body">
+
+    <div class="auth-card">
+        <h2><i class="fa-solid fa-graduation-cap"></i> ExamSeat</h2>
+
+        <div class="auth-tabs">
+            <button id="loginTabBtn" class="active" onclick="switchAuthMode('login')">Sign In</button>
+            <button id="registerTabBtn" onclick="switchAuthMode('register')">Register</button>
+        </div>
+
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <% if (success) { %>
+            <div class="alert alert-success"><%= success %></div>
+        <% } %>
+
+        <form id="loginForm" action="/login" method="POST" class="auth-form">
+            <input type="text" name="username" placeholder="Username / Registration Number" required>
+            <input type="password" name="password" placeholder="Enter Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+
+        <form id="registerForm" action="/register" method="POST" class="auth-form hidden">
+            <input type="text" name="username" placeholder="Registration Number" required>
+            <input type="password" name="password" placeholder="Create Password" required>
+            <button type="submit">Register Account</button>
+        </form>
+    </div>
+
+    <script>
+        function switchAuthMode(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginBtn = document.getElementById('loginTabBtn');
+            const registerBtn = document.getElementById('registerTabBtn');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginBtn.classList.add('active');
+                registerBtn.classList.remove('active');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                loginBtn.classList.remove('active');
+                registerBtn.classList.add('active');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

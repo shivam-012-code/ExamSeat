@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamSeat Portal</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="shortcut icon" href="https://img.icons8.com/pulsar-gradient/48/quiz.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif+Caption:ital@0;1&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header>
+        <h2><i class="fa-solid fa-graduation-cap"></i> ExamSeat</h2>
+        <div class="user-info">
+            <span><b><i class="fa-solid fa-user"></i></b>
+                <%= user.username %> (<strong style="text-transform: capitalize;">
+                        <%= user.role %>
+                    </strong>)
+            </span>
+            <a href="/logout" class="logout-btn"><strong>Logout</strong> <i
+                    class="fa-solid fa-arrow-right-from-bracket"></i></a>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <aside>
+            <button onclick="showSection('dashboard')"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard</button>
+            <% if (user.role==='admin' ) { %>
+                <button onclick="showSection('students')"><i class="fa-solid fa-user-graduate"></i> Students &
+                    Upload</button>
+                <button onclick="showSection('rooms')"><i class="fa-solid fa-school"></i> Rooms</button>
+                <button onclick="showSection('exams')"><i class="fa-solid fa-file-pen"></i> Exams & Seating</button>
+                <button onclick="showSection('admin_users')"><i class="fa-solid fa-user-shield"></i> Admin &
+                    Users</button>
+                <% } else { %>
+                    <button onclick="showSection('my_seating')"><i class="fa-solid fa-couch"></i> My Exam Seats</button>
+                    <% } %>
+        </aside>
+
+        <main>
+
+            <!-- DASHBOARD -->
+            <section id="dashboard">
+                <h1 style="font-size: 30px;">Welcome, <%= user.username %>
+                </h1>
+                <br>
+                <p style="font-size: 20px;">Role: <strong>
+                        <%= user.role.toUpperCase() %>
+                    </strong></p>
+                <br>
+
+                <% if (user.role==='admin' ) { %>
+                    <div class="cards">
+                        <div class="card">
+                            <h3>Students</h3>
+                            <p class="pt-serif-caption-regular">
+                                <%= students.length %>
+                            </p>
+                        </div>
+                        <div class="card">
+                            <h3>Rooms</h3>
+                            <p class="pt-serif-caption-regular">
+                                <%= rooms.length %>
+                            </p>
+                        </div>
+                        <div class="card">
+                            <h3>Exams</h3>
+                            <p class="pt-serif-caption-regular">
+                                <%= exams.length %>
+                            </p>
+                        </div>
+                    </div>
+                    <% } else { %>
+                        <br>
+                        <div class="student-profile-card">
+                            <h2>Personal Details</h2>
+                            <% if (studentInfo) { %>
+                                <p><strong>Name:</strong>
+                                    <%= studentInfo.name %>
+                                </p>
+                                <p><strong>Reg No:</strong>
+                                    <%= studentInfo.reg_no %>
+                                </p>
+                                <p><strong>Branch:</strong>
+                                    <%= studentInfo.branch || 'N/A' %>
+                                </p>
+                                <p><strong>Semester:</strong>
+                                    <%= studentInfo.semester ? 'Semester ' + studentInfo.semester : 'N/A' %>
+                                </p>
+                                <% } else { %>
+                                    <p class="text-warning">⚠️ Student profile record not found for Reg No <strong>
+                                            <%= user.username %>
+                                        </strong>. Please ensure your username matches your registered Reg Number.</p>
+                                    <% } %>
+                        </div>
+                        <% } %>
+            </section>
+
+            <% if (user.role==='admin' ) { %>
+
+                <!-- STUDENTS SECTION WITH CONTEXTUAL SEARCH -->
+                <section id="students" class="hidden">
+                    <div class="selection-card">
+                        <h2><i class="fa-solid fa-filter"></i> Select Branch & Semester</h2>
+                        <p class="select-instruction">Select a Branch first, then choose a Semester from 1st to 6th to
+                            view, search, or upload student records.</p>
+
+                        <div class="filter-controls">
+                            <div class="control-group">
+                                <label><strong>1. Branch:</strong></label>
+                                <select id="selectBranch" onchange="handleBranchChange()" class="select-input">
+                                    <option value="">-- Choose Branch --</option>
+                                    <option value="CSE" <%=selectedBranch==='CSE' ? 'selected' : '' %>>CSE</option>
+                                    <option value="ME" <%=selectedBranch==='ME' ? 'selected' : '' %>>ME</option>
+                                    <option value="AE" <%=selectedBranch==='AE' ? 'selected' : '' %>>AE</option>
+                                    <option value="CE" <%=selectedBranch==='CE' ? 'selected' : '' %>>CE</option>
+                                    <option value="EE" <%=selectedBranch==='EE' ? 'selected' : '' %>>EE</option>
+                                    <option value="ECE" <%=selectedBranch==='ECE' ? 'selected' : '' %>>ECE</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <label><strong>2. Semester:</strong></label>
+                                <select id="selectSemester" onchange="handleSemesterChange()" class="select-input"
+                                    <%=selectedBranch ? '' : 'disabled' %>>
+                                    <option value="">-- Choose Semester --</option>
+                                    <option value="1" <%=selectedSemester=='1' ? 'selected' : '' %>>1st</option>
+                                    <option value="2" <%=selectedSemester=='2' ? 'selected' : '' %>>2nd</option>
+                                    <option value="3" <%=selectedSemester=='3' ? 'selected' : '' %>>3rd</option>
+                                    <option value="4" <%=selectedSemester=='4' ? 'selected' : '' %>>4th</option>
+                                    <option value="5" <%=selectedSemester=='5' ? 'selected' : '' %>>5th</option>
+                                    <option value="6" <%=selectedSemester=='6' ? 'selected' : '' %>>6th</option>
+                                </select>
+                            </div>
+
+                            <% if (selectedBranch || selectedSemester) { %>
+                                <div class="control-group" style="align-self: flex-end;">
+                                    <a href="/" class="btn-clear-filter"><i class="fa-solid fa-rotate-left"></i> View
+                                        All Students</a>
+                                </div>
+                                <% } %>
+                        </div>
+                    </div>
+
+                    <% if (selectedBranch && selectedSemester) { %>
+                        <div id="studentUploadContainer">
+
+                            <!-- SEARCH FEATURE FOR BRANCH & SEMESTER -->
+                            <div class="search-box-card">
+                                <h3><i class="fa-solid fa-magnifying-glass"></i> Search Students in <%= selectedBranch
+                                        %> (Sem <%= selectedSemester %>)</h3>
+                                <form action="/" method="GET" style="display: flex; gap: 10px; margin-top: 10px;">
+                                    <input type="hidden" name="branch" value="<%= selectedBranch %>">
+                                    <input type="hidden" name="semester" value="<%= selectedSemester %>">
+                                    <input name="student_search"
+                                        placeholder="Search by Student Name or Registration Number"
+                                        value="<%= studentSearchQuery %>" style="flex: 1;" class="select-input">
+                                    <button type="submit" class="btn-blue"><i class="fa-solid fa-search"></i>
+                                        Search</button>
+                                    <% if (studentSearchQuery) { %>
+                                        <a href="/?branch=<%= encodeURIComponent(selectedBranch) %>&semester=<%= encodeURIComponent(selectedSemester) %>"
+                                            class="btn-clear-filter"
+                                            style="display: inline-flex; align-items: center;">Clear Search</a>
+                                        <% } %>
+                                </form>
+                            </div>
+
+                            <br>
+
+                            <!-- Upload Data of the Students -->
+                            <div class="form-grid">
+                                <div class="upload-box">
+                                    <h2><i class="fa-solid fa-user-plus"></i> Add Single Student</h2>
+                                    <form action="/add_student" method="POST">
+                                        <input type="hidden" name="branch" value="<%= selectedBranch %>">
+                                        <input type="hidden" name="semester" value="<%= selectedSemester %>">
+                                        <input name="reg_no" placeholder="Registration Number" required>
+                                        <input name="name" placeholder="Student Name" required>
+                                        <button type="submit">Add Student</button>
+                                    </form>
+                                    <small><strong>Note:</strong> Registration Number is in the format of
+                                        <strong>121XXXXXXX</strong></small>
+                                </div>
+
+                                <div class="upload-box">
+                                    <h2><i class="fa-regular fa-folder-open"></i> Bulk Upload Excel Sheet</h2>
+                                    <form action="/upload_students" method="POST" enctype="multipart/form-data">
+                                        <input type="hidden" name="branch" value="<%= selectedBranch %>">
+                                        <input type="hidden" name="semester" value="<%= selectedSemester %>">
+                                        <input type="file" name="excel_file" accept=".xlsx, .xls" required>
+                                        <button type="submit" class="btn-green"><i class="fa-solid fa-upload"></i>
+                                            Upload</button>
+                                    </form>
+                                    <small><strong>Note:</strong> Data is stored in the format of <strong>reg_no, name,
+                                            branch, semester</strong> in excel.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+
+                            <br>
+                            <h2>
+                                <% if (selectedBranch && selectedSemester) { %>
+                                    Students in <%= selectedBranch %> (Semester <%= selectedSemester %>) <%
+                                                if(studentSearchQuery) { %>— Matching "<%= studentSearchQuery %>"<% } %>
+                                                        (<%= students.length %> Found)
+                                                            <% } else { %>
+                                                                All Registered Students (<%= students.length %> Total)
+                                                                    <% } %>
+                            </h2>
+
+                            <% if (students.length===0) { %>
+                                <p class="no-data-msg">No student records found matching according to your selection.
+                                </p>
+                                <% } else { %>
+                                    <table>
+                                        <tr>
+                                            <th>Reg No</th>
+                                            <th>Name</th>
+                                            <th>Branch</th>
+                                            <th>Semester</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        <% students.forEach(student=> { %>
+                                            <tr>
+                                                <td>
+                                                    <%= student.reg_no %>
+                                                </td>
+                                                <td>
+                                                    <%= student.name %>
+                                                </td>
+                                                <td><span class="badge">
+                                                        <%= student.branch || 'N/A' %>
+                                                    </span></td>
+                                                <td>Semester <%= student.semester || 'N/A' %>
+                                                </td>
+                                                <td>
+                                                    <form action="/delete_student/<%= student.id %>" method="POST"
+                                                        style="margin: 0; display: inline;"
+                                                        onsubmit="return confirm('Are you sure you want to delete <%= student.name %>?');">
+                                                        <input type="hidden" name="branch"
+                                                            value="<%= selectedBranch %>">
+                                                        <input type="hidden" name="semester"
+                                                            value="<%= selectedSemester %>">
+                                                        <button type="submit" class="btn-red"><i
+                                                                class="fa-solid fa-trash"></i> Delete</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </table>
+                                    <% } %>
+                </section>
+
+                <!-- ROOMS SECTION -->
+                <section id="rooms" class="hidden">
+                    <h2><i class="fa-solid fa-school"></i> Add Examination Room</h2>
+                    <form action="/add_room" method="POST">
+                        <input name="room_no" placeholder="Room Number" required>
+                        <input name="rows" type="number" placeholder="Rows" required>
+                        <input name="columns" type="number" placeholder="Columns" required>
+                        <button type="submit">Add Room</button>
+                    </form>
+
+                    <h2>Room List</h2>
+                    <table>
+                        <tr>
+                            <th>Room No</th>
+                            <th>Rows</th>
+                            <th>Columns</th>
+                            <th>Capacity</th>
+                            <th>Actions</th>
+                        </tr>
+                        <% rooms.forEach(room=> { %>
+                            <tr>
+                                <td>
+                                    <%= room.room_no %>
+                                </td>
+                                <td>
+                                    <%= room.rows %>
+                                </td>
+                                <td>
+                                    <%= room.columns %>
+                                </td>
+                                <td>
+                                    <%= room.capacity %>
+                                </td>
+                                <td>
+                                    <form action="/delete_room/<%= room.id %>" method="POST"
+                                        style="margin: 0; display: inline;"
+                                        onsubmit="return confirm('Are you sure you want to delete Room <%= room.room_no %>?');">
+                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
+                                            Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </table>
+                </section>
+
+                <!-- EXAMS SECTION WITH DYNAMIC ROOM DROPDOWN -->
+                <section id="exams" class="hidden">
+                    <h2><i class="fa-solid fa-file-pen"></i> Create Exam</h2>
+                    <form action="/add_exam" method="POST">
+                        <input name="subject" placeholder="Subject Name" required>
+                        <select name="branch" required class="select-input">
+                            <option value="">-- Branch --</option>
+                            <option value="CSE">CSE</option>
+                            <option value="ME">ME</option>
+                            <option value="AE">AE</option>
+                            <option value="CE">CE</option>
+                            <option value="EE">EE</option>
+                            <option value="ECE">ECE</option>
+                        </select>
+                        <select name="semester" required class="select-input">
+                            <option value="">-- Semester --</option>
+                            <option value="1">1st</option>
+                            <option value="2">2nd</option>
+                            <option value="3">3rd</option>
+                            <option value="4">4th</option>
+                            <option value="5">5th</option>
+                            <option value="6">6th</option>
+                        </select>
+
+                        <!-- DYNAMIC ROOM DROPDOWN (ONLY SHOWS CREATED ROOMS) -->
+                        <select name="room_id" required class="select-input">
+                            <option value="">-- Room Number --</option>
+                            <% if (rooms.length===0) { %>
+                                <option value="" disabled>⚠ No rooms created yet! Add rooms in Rooms section first.
+                                </option>
+                                <% } else { %>
+                                    <% rooms.forEach(r=> { %>
+                                        <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)
+                                        </option>
+                                        <% }) %>
+                                            <% } %>
+                        </select>
+
+                        <input name="exam_date" type="date" required>
+                        <input name="start_time" type="time" required>
+                        <input name="end_time" type="time" required>
+                        <button type="submit">Create Exam</button>
+                    </form>
+
+                    <h2>Exam List & Seating Generation</h2>
+                    <p class="select-instruction">Randomize the seat first and then export the seats in PDF or Excel
+                        form.</p>
+                    <table>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Branch</th>
+                            <th>Sem</th>
+                            <th>Room</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Actions</th>
+                        </tr>
+                        <% exams.forEach(exam=> {
+                            const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0]
+                            : '';
+                            %>
+                            <tr>
+                                <td><strong>
+                                        <%= exam.subject %>
+                                    </strong></td>
+                                <td><span class="badge">
+                                        <%= exam.branch || 'All Branches' %>
+                                    </span></td>
+                                <td>
+                                    <%= exam.semester || 'N/A' %>
+                                </td>
+                                <td><strong>
+                                        <%= exam.room_no ? exam.room_no : 'All Rooms' %>
+                                    </strong></td>
+                                <td>
+                                    <%= formattedDate %>
+                                </td>
+                                <td>
+                                    <%= exam.start_time %> - <%= exam.end_time %>
+                                </td>
+                                <td>
+                                    <a href="/generate_seating/<%= exam.id %>">
+                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i>
+                                            Randomize & Seats</button>
+                                    </a>
+                                    <a href="/export_seating_pdf/<%= exam.id %>">
+                                        <button type="button" class="btn-red"><i class="fa-solid fa-file-pdf"></i>
+                                            PDF</button>
+                                    </a>
+                                    <a href="/export_seating_excel/<%= exam.id %>">
+                                        <button type="button" class="btn-green"><i class="fa-solid fa-file-excel"></i>
+                                            Excel</button>
+                                    </a>
+                                    <button type="button" class="btn-yellow"
+                                        onclick="openEditExamModal('<%= exam.id %>', '<%= exam.subject %>', '<%= exam.branch %>', '<%= exam.semester %>', '<%= exam.room_id %>', '<%= formattedDate %>', '<%= exam.start_time %>', '<%= exam.end_time %>')">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </button>
+                                    <form action="/delete_exam/<%= exam.id %>" method="POST"
+                                        style="margin: 0; display: inline;"
+                                        onsubmit="return confirm('Are you sure you want to delete exam for <%= exam.subject %>?');">
+                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
+                                            Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </table>
+                </section>
+
+                <!-- ADMIN & USERS SECTION -->
+                <section id="admin_users" class="hidden">
+                    <h2><i class="fa-solid fa-user-shield"></i> Existing Admin Accounts (<%= adminUsers.length %>
+                            Total)</h2>
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Admin Username</th>
+                            <th>Role</th>
+                            <th>Created Date <small>(mm/dd/yyyy)</small></th>
+                            <th>Actions</th>
+                        </tr>
+                        <% adminUsers.forEach((a, index)=> { %>
+                            <tr>
+                                <td>
+                                    <%= index + 1 %>
+                                </td>
+                                <td>
+                                    <strong>
+                                        <%= a.username %>
+                                    </strong>
+                                </td>
+                                <td><span class="badge">ADMIN</span></td>
+                                <td>
+                                    <%= new Date(a.created_at).toLocaleDateString() %>
+                                </td>
+                                <td>
+                                    <% if (a.id !==user.id) { %>
+                                        <form action="/delete_admin/<%= a.id %>" method="POST"
+                                            style="margin: 0; display: inline;"
+                                            onsubmit="return confirm('Are you sure you want to delete Admin <%= a.username %>?');">
+                                            <input type="hidden" name="user_search" value="<%= userSearchQuery %>">
+                                            <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
+                                                Delete Admin</button>
+                                        </form>
+                                        <% } else { %>
+                                            <span style="color: #64748b; font-style: italic;">(Current Account)</span>
+                                            <% } %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </table>
+
+                    <br><br>
+                    <hr><br>
+
+                    <h2><i class="fa-solid fa-magnifying-glass"></i> Search User to Give Admin Role</h2>
+                    <p class="select-instruction">Enter a Username or Registration Number to search for a registered
+                        account and make them to Admin.</p>
+
+                    <form action="/" method="GET" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="hidden" name="active_tab" value="admin_users">
+                        <input name="user_search" placeholder="Enter Username / Registration Number"
+                            value="<%= userSearchQuery %>" required style="flex: 1;">
+                        <button type="submit" class="btn-blue"><i class="fa-solid fa-search"></i> Search User</button>
+                        <% if (userSearchQuery) { %>
+                            <a href="/?active_tab=admin_users" class="btn-clear-filter"
+                                style="display: inline-flex; align-items: center; justify-content: center;">Clear
+                                Search</a>
+                            <% } %>
+                    </form>
+
+                    <% if (userSearchQuery) { %>
+                        <h3>Search Results for "<%= userSearchQuery %>":</h3>
+                        <% if (searchedUsers.length===0) { %>
+                            <p class="no-data-msg">No user found matching username "<%= userSearchQuery %>".</p>
+                            <% } else { %>
+                                <table>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Username / Reg No</th>
+                                        <th>Current Role</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                    <% searchedUsers.forEach((u, index)=> { %>
+                                        <tr>
+                                            <td>
+                                                <%= index + 1 %>
+                                            </td>
+                                            <td>
+                                                <%= u.username %>
+                                            </td>
+                                            <td><strong style="text-transform: uppercase;">
+                                                    <%= u.role %>
+                                                </strong></td>
+                                            <td>
+                                                <% if (u.role==='admin' ) { %>
+                                                    <span class="badge">Already Admin</span>
+                                                    <% } else { %>
+                                                        <form action="/make_admin/<%= u.id %>" method="POST"
+                                                            style="margin: 0; display: inline;"
+                                                            onsubmit="return confirm('Promote <%= u.username %> to Admin?');">
+                                                            <input type="hidden" name="user_search"
+                                                                value="<%= userSearchQuery %>">
+                                                            <button type="submit" class="btn-blue"><i
+                                                                    class="fa-solid fa-user-gear"></i> Make
+                                                                Admin</button>
+                                                        </form>
+                                                        <% } %>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                </table>
+                                <% } %>
+                                    <% } %>
+                </section>
+
+                <% } else { %>
+
+                    <!-- STUDENT VIEW -->
+                    <section id="my_seating">
+                        <h2>💺 My Assigned Exam Seats</h2>
+                        <% if (studentSeating.length===0) { %>
+                            <p class="no-data-msg">No seating arrangements generated for your exams yet. Check back once
+                                the admin generates the plan.</p>
+                            <% } else { %>
+                                <table>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Date</th>
+                                        <th>Timing</th>
+                                        <th>Room No</th>
+                                        <th>Row</th>
+                                        <th>Column</th>
+                                        <th>Assigned Seat</th>
+                                    </tr>
+                                    <% studentSeating.forEach(s=> { %>
+                                        <tr>
+                                            <td><strong>
+                                                    <%= s.subject %>
+                                                </strong></td>
+                                            <td>
+                                                <%= new Date(s.exam_date).toISOString().split('T')[0] %>
+                                            </td>
+                                            <td>
+                                                <%= s.start_time %> - <%= s.end_time %>
+                                            </td>
+                                            <td>
+                                                <%= s.room_no %>
+                                            </td>
+                                            <td>
+                                                <%= s.row_no %>
+                                            </td>
+                                            <td>
+                                                <%= s.column_no %>
+                                            </td>
+                                            <td><span class="badge">
+                                                    <%= s.seat_no %>
+                                                </span></td>
+                                        </tr>
+                                        <% }) %>
+                                </table>
+                                <% } %>
+                    </section>
+
+                    <% } %>
+
+        </main>
+    </div>
+
+    <!-- EDIT EXAM MODAL -->
+    <div id="editExamModal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fa-solid fa-file-pen"></i> Edit Exam Details</h2>
+            <form id="editExamForm" action="" method="POST" class="modal-form">
+                <div>
+                    <label>Subject Name:</label>
+                    <input id="editSubject" name="subject" required>
+                </div>
+                <div>
+                    <label>Branch:</label>
+                    <select id="editBranch" name="branch" required class="select-input">
+                        <option value="CSE">CSE</option>
+                        <option value="ME">ME</option>
+                        <option value="AE">AE</option>
+                        <option value="CE">CE</option>
+                        <option value="EE">EE</option>
+                        <option value="ECE">ECE</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Semester:</label>
+                    <select id="editSemester" name="semester" required class="select-input">
+                        <option value="1">1st</option>
+                        <option value="2">2nd</option>
+                        <option value="3">3rd</option>
+                        <option value="4">4th</option>
+                        <option value="5">5th</option>
+                        <option value="6">6th</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Room Number:</label>
+                    <select id="editRoomId" name="room_id" required class="select-input">
+                        <% rooms.forEach(r=> { %>
+                            <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)</option>
+                            <% }) %>
+                    </select>
+                </div>
+                <div>
+                    <label>Exam Date:</label>
+                    <input id="editExamDate" name="exam_date" type="date" required>
+                </div>
+                <div>
+                    <label>Start Time:</label>
+                    <input id="editStartTime" name="start_time" type="time" required>
+                </div>
+                <div>
+                    <label>End Time:</label>
+                    <input id="editEndTime" name="end_time" type="time" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-green">Save Changes</button>
+                    <button type="button" class="btn-red" onclick="closeEditExamModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionName) {
+            let sections = document.querySelectorAll("main section");
+            sections.forEach(function (section) {
+                section.classList.add("hidden");
+            });
+            const target = document.getElementById(sectionName);
+            if (target) target.classList.remove("hidden");
+        }
+
+        function handleBranchChange() {
+            const branchSelect = document.getElementById('selectBranch');
+            const semSelect = document.getElementById('selectSemester');
+
+            if (branchSelect.value) {
+                semSelect.disabled = false;
+            } else {
+                semSelect.value = '';
+                semSelect.disabled = true;
+            }
+            triggerBranchSemFilter();
+        }
+
+        function handleSemesterChange() {
+            triggerBranchSemFilter();
+        }
+
+        function triggerBranchSemFilter() {
+            const branchVal = document.getElementById('selectBranch').value;
+            const semVal = document.getElementById('selectSemester').value;
+
+            if (branchVal && semVal) {
+                window.location.href = '/?branch=' + encodeURIComponent(branchVal) + '&semester=' + encodeURIComponent(semVal);
+            }
+        }
+
+        function openEditExamModal(id, subject, branch, semester, roomId, date, startTime, endTime) {
+            document.getElementById('editExamForm').action = '/edit_exam/' + id;
+            document.getElementById('editSubject').value = subject;
+            document.getElementById('editBranch').value = branch;
+            document.getElementById('editSemester').value = semester;
+            if (roomId) document.getElementById('editRoomId').value = roomId;
+            document.getElementById('editExamDate').value = date;
+            document.getElementById('editStartTime').value = startTime;
+            document.getElementById('editEndTime').value = endTime;
+            document.getElementById('editExamModal').classList.remove('hidden');
+        }
+
+        function closeEditExamModal() {
+            document.getElementById('editExamModal').classList.add('hidden');
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTab = urlParams.get('active_tab');
+            if (activeTab) {
+                showSection(activeTab);
+            } else if (urlParams.has('branch') || urlParams.has('semester')) {
+                showSection('students');
+            }
+        });
+    </script>
+
+</body>
+
+</html>
