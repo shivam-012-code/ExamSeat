@@ -354,7 +354,7 @@
                             <th>Branch</th>
                             <th>Sem</th>
                             <th>Room</th>
-                            <th>Date</th>
+                            <th>Date<small>yyyy-mm-dd</small></th>
                             <th>Time</th>
                             <th>Actions</th>
                         </tr>
@@ -369,10 +369,11 @@
                                 <td><span class="badge">
                                         <%= exam.branch || 'All Branches' %>
                                     </span></td>
-                                <td>Semester <%= exam.semester || 'N/A' %>
+                                <td>
+                                    <%= exam.semester || 'N/A' %>
                                 </td>
                                 <td><strong>
-                                        <%= exam.room_no ? 'Room ' + exam.room_no : 'All Rooms' %>
+                                        <%= exam.room_no ? exam.room_no : 'All Rooms' %>
                                     </strong></td>
                                 <td>
                                     <%= formattedDate %>
@@ -415,7 +416,6 @@
                     </h2>
                     <table>
                         <tr>
-                            <th>ID</th>
                             <th>Admin Username</th>
                             <th>Role</th>
                             <th>Created Date</th>
@@ -423,9 +423,6 @@
                         </tr>
                         <% adminUsers.forEach(a=> { %>
                             <tr>
-                                <td>
-                                    <%= a.id %>
-                                </td>
                                 <td><strong>
                                         <%= a.username %>
                                     </strong></td>
