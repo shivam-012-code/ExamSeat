@@ -20,14 +20,14 @@ const StudentSchema = new mongoose.Schema({
   semester: { type: Number }
 });
 
-// Dynamic Columns with Variable Rows per Column
+// FEATURE CHANGE: Dynamic Columns config for Rooms
 const RoomSchema = new mongoose.Schema({
   room_no: { type: String, required: true, unique: true, trim: true },
   columns_config: [{
     column_no: { type: Number, required: true },
     rows: { type: Number, required: true }
   }],
-  capacity: { type: Number, required: true } // Total Benches * 2
+  capacity: { type: Number, required: true }
 });
 
 const ExamSchema = new mongoose.Schema({
@@ -40,7 +40,7 @@ const ExamSchema = new mongoose.Schema({
   end_time: { type: String, required: true }
 });
 
-// Seating with Left/Right Position (A/B) & Dual-Color Tag
+// FEATURE CHANGE: Added seat_position (A/B) and color_tag (blue/green)
 const SeatingSchema = new mongoose.Schema({
   student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   exam_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam', required: true },

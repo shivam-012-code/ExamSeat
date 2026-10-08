@@ -58,7 +58,7 @@ app.post('/register', async (req, res) => {
   try {
     const existing = await User.findOne({ username: username.trim() });
     if (existing) {
-      return res.render('login', { error: 'Username / Reg Number already exists!', success: null });
+      return res.render('login', { error: 'Registration failed: Username / Registration Number already exists!', success: null });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     await User.create({ username: username.trim(), password: hashedPassword, role: 'student' });
@@ -131,7 +131,7 @@ app.get('/', isAuthenticated, async (req, res) => {
       const rooms = roomsRaw.map(r => ({
         id: r._id.toString(),
         room_no: r.room_no,
-        columns_config: r.columns_config,
+        columns_config: r.columns_config || [],
         capacity: r.capacity
       }));
 
@@ -184,7 +184,6 @@ app.get('/', isAuthenticated, async (req, res) => {
         studentSeating: [] 
       });
     } else {
-      // --- STUDENT DASHBOARD LOGIC ---
       const cleanUsername = String(user.username || '').trim();
 
       const studentDoc = await Student.findOne({ 
@@ -341,7 +340,7 @@ app.post('/delete_student/:id', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// ---------------- DYNAMIC ROOM MANAGEMENT ----------------
+// ---------------- ROOM MANAGEMENT ----------------
 
 app.post('/add_room', isAuthenticated, isAdmin, async (req, res) => {
   const { room_no } = req.body;
@@ -366,7 +365,7 @@ app.post('/add_room', isAuthenticated, isAdmin, async (req, res) => {
     await Room.create({
       room_no: room_no.trim(),
       columns_config: config,
-      capacity: totalBenches * 2 // 2 seats per bench
+      capacity: totalBenches * 2
     });
   } catch (err) { console.error('Add Room Error:', err); }
   res.redirect('/?active_tab=rooms');
@@ -382,7 +381,7 @@ app.post('/delete_room/:id', isAuthenticated, isAdmin, async (req, res) => {
   res.redirect('/?active_tab=rooms');
 });
 
-// ---------------- EXAM MANAGEMENT ----------------
+// ---------------- EXAM & SEATING MANAGEMENT ----------------
 
 app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
   const { subject, branch, semester, room_id, exam_date, start_time, end_time } = req.body;
@@ -426,16 +425,14 @@ app.post('/delete_exam/:id', isAuthenticated, isAdmin, async (req, res) => {
   res.redirect('/?active_tab=exams');
 });
 
-// --- CUSTOM GRAPHICAL SEATING GENERATION ROUTE ---
-app.post('/generate_seating_custom/:exam_id', isAuthenticated, isAdmin, async (req, res) => {
+// ORIGINAL SEATING ROUTE RESTORED: /generate_seating/:exam_id
+app.post('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res) => {
   const examId = req.params.exam_id;
   const { selected_seats } = req.body;
 
   try {
     const exam = await Exam.findById(examId);
-    if (!exam || !selected_seats) return res.redirect('/?active_tab=exams');
-
-    let seatsList = typeof selected_seats === 'string' ? JSON.parse(selected_seats) : selected_seats;
+    if (!exam) return res.redirect('/?active_tab=exams');
 
     const studentFilter = {};
     if (exam.branch) studentFilter.branch = exam.branch;
@@ -446,37 +443,77 @@ app.post('/generate_seating_custom/:exam_id', isAuthenticated, isAdmin, async (r
 
     await Seating.deleteMany({ exam_id: examId });
 
-    let blueSeats = seatsList.filter(s => s.color === 'blue');
-    let greenSeats = seatsList.filter(s => s.color === 'green');
+    if (selected_seats) {
+      // Custom Graphical Grid Seat Allocation
+      let seatsList = typeof selected_seats === 'string' ? JSON.parse(selected_seats) : selected_seats;
+      let blueSeats = shuffleArray(seatsList.filter(s => s.color === 'blue'));
+      let greenSeats = shuffleArray(seatsList.filter(s => s.color === 'green'));
 
-    blueSeats = shuffleArray(blueSeats);
-    greenSeats = shuffleArray(greenSeats);
+      let finalSelectedSeats = [];
+      let maxLen = Math.max(blueSeats.length, greenSeats.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (i < blueSeats.length) finalSelectedSeats.push(blueSeats[i]);
+        if (i < greenSeats.length) finalSelectedSeats.push(greenSeats[i]);
+      }
 
-    let finalSelectedSeats = [];
-    let maxLen = Math.max(blueSeats.length, greenSeats.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < blueSeats.length) finalSelectedSeats.push(blueSeats[i]);
-      if (i < greenSeats.length) finalSelectedSeats.push(greenSeats[i]);
+      for (let i = 0; i < students.length && i < finalSelectedSeats.length; i++) {
+        const student = students[i];
+        const seat = finalSelectedSeats[i];
+        const seatNo = `${seat.room_no}-C${seat.col}-B${seat.row}-${seat.pos}`;
+
+        await Seating.create({
+          student_id: student._id,
+          exam_id: exam._id,
+          room_id: exam.room_id || seat.room_id,
+          column_no: seat.col,
+          row_no: seat.row,
+          seat_position: seat.pos,
+          color_tag: seat.color,
+          seat_no: seatNo
+        });
+      }
+    } else {
+      // Default Auto Allocation
+      const rooms = await Room.find(exam.room_id ? { _id: exam.room_id } : {}).sort({ room_no: 1 });
+      let sIndex = 0;
+
+      for (const room of rooms) {
+        if (!room.columns_config || room.columns_config.length === 0) continue;
+
+        for (const col of room.columns_config) {
+          for (let r = 1; r <= col.rows; r++) {
+            for (const pos of ['A', 'B']) {
+              if (sIndex >= students.length) break;
+              const student = students[sIndex];
+              const seatNo = `${room.room_no}-C${col.column_no}-B${r}-${pos}`;
+
+              await Seating.create({
+                student_id: student._id,
+                exam_id: exam._id,
+                room_id: room._id,
+                column_no: col.column_no,
+                row_no: r,
+                seat_position: pos,
+                color_tag: 'blue',
+                seat_no: seatNo
+              });
+              sIndex++;
+            }
+            if (sIndex >= students.length) break;
+          }
+          if (sIndex >= students.length) break;
+        }
+        if (sIndex >= students.length) break;
+      }
     }
-
-    for (let i = 0; i < students.length && i < finalSelectedSeats.length; i++) {
-      const student = students[i];
-      const seat = finalSelectedSeats[i];
-      const seatNo = `${seat.room_no}-C${seat.col}-B${seat.row}-${seat.pos}`;
-
-      await Seating.create({
-        student_id: student._id,
-        exam_id: exam._id,
-        room_id: exam.room_id || seat.room_id,
-        column_no: seat.col,
-        row_no: seat.row,
-        seat_position: seat.pos,
-        color_tag: seat.color,
-        seat_no: seatNo
-      });
-    }
-  } catch (err) { console.error('Custom Seating Error:', err); }
+  } catch (err) { console.error('Seating Allocation Error:', err); }
   res.redirect('/?active_tab=exams');
+});
+
+// GET fallback for old direct generate_seating links
+app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res) => {
+  req.body.selected_seats = null;
+  return app._router.handle(req, res);
 });
 
 // ---------------- EXPORTS ----------------
@@ -495,14 +532,14 @@ app.get('/export_seating_excel/:exam_id', isAuthenticated, async (req, res) => {
       'Room No': s.room_id ? s.room_id.room_no : 'N/A',
       'Column': s.column_no,
       'Bench (Row)': s.row_no,
-      'Side Position': s.seat_position === 'A' ? 'Left (A)' : 'Right (B)',
+      'Position': s.seat_position === 'A' ? 'Left (A)' : 'Right (B)',
       'Group Color': s.color_tag ? s.color_tag.toUpperCase() : 'BLUE',
       'Seat No': s.seat_no
     }));
 
     const worksheet = xlsx.utils.json_to_sheet(data);
     const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Seating');
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Seating Arrangement');
 
     const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
