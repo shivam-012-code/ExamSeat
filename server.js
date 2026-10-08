@@ -49,7 +49,7 @@ function isAdmin(req, res, next) {
 // ---------------- AUTH ROUTES ----------------
 
 app.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/');
+  if (req.session && req.session.user) return res.redirect('/');
   res.render('login', { error: null, success: null });
 });
 
@@ -66,7 +66,7 @@ app.post('/register', async (req, res) => {
     await User.create({ username: username.trim(), password: hashedPassword, role: 'student' });
     res.render('login', { error: null, success: 'Account created successfully! Please sign in.' });
   } catch (err) {
-    console.error(err);
+    console.error('Registration Error:', err);
     res.render('login', { error: 'Registration failed.', success: null });
   }
 });
@@ -88,7 +88,7 @@ app.post('/login', async (req, res) => {
     req.session.user = { id: user._id.toString(), username: user.username, role: user.role };
     res.redirect('/');
   } catch (err) {
-    console.error(err);
+    console.error('Login Error:', err);
     res.render('login', { error: 'Login error occurred.', success: null });
   }
 });
@@ -190,7 +190,14 @@ app.get('/', isAuthenticated, async (req, res) => {
         studentSeating: [] 
       });
     } else {
-      const studentDoc = await Student.findOne({ reg_no: user.username });
+      // --- STUDENT DASHBOARD LOGIC ---
+      const cleanUsername = String(user.username || '').trim();
+
+      // Find student by reg_no (case-insensitive & trimmed)
+      const studentDoc = await Student.findOne({ 
+        reg_no: { $regex: `^${cleanUsername}$`, $options: 'i' } 
+      }) || await Student.findOne({ reg_no: cleanUsername });
+
       const studentInfo = studentDoc ? {
         id: studentDoc._id.toString(),
         reg_no: studentDoc.reg_no,
@@ -214,7 +221,11 @@ app.get('/', isAuthenticated, async (req, res) => {
           row_no: s.row_no,
           column_no: s.column_no,
           seat_no: s.seat_no
-        })).sort((a, b) => new Date(a.exam_date) - new Date(b.exam_date));
+        })).sort((a, b) => {
+          if (!a.exam_date) return 1;
+          if (!b.exam_date) return -1;
+          return new Date(a.exam_date) - new Date(b.exam_date);
+        });
       }
 
       res.render('index', { 
@@ -234,7 +245,7 @@ app.get('/', isAuthenticated, async (req, res) => {
       });
     }
   } catch (err) {
-    console.error(err);
+    console.error('Dashboard Error:', err);
     res.status(500).send('Database Error');
   }
 });
@@ -282,7 +293,7 @@ app.post('/add_student', isAuthenticated, isAdmin, async (req, res) => {
         semester: semester ? parseInt(semester, 10) : null
       });
     }
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Add Student Error:', err); }
 
   if (branch && semester) {
     res.redirect(`/?branch=${encodeURIComponent(branch)}&semester=${encodeURIComponent(semester)}`);
@@ -365,7 +376,7 @@ app.post('/add_room', isAuthenticated, isAdmin, async (req, res) => {
       columns: numCols,
       capacity: numRows * numCols
     });
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Add Room Error:', err); }
   res.redirect('/?active_tab=rooms');
 });
 
@@ -397,7 +408,7 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
       start_time: start_time,
       end_time: end_time
     });
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Add Exam Error:', err); }
   res.redirect('/?active_tab=exams');
 });
 
@@ -477,7 +488,7 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
       }
       if (sIndex >= students.length) break;
     }
-  } catch (err) { console.error(err); }
+  } catch (err) { console.error('Generate Seating Error:', err); }
   res.redirect('/?active_tab=exams');
 });
 
@@ -519,7 +530,7 @@ app.get('/export_seating_excel/:exam_id', isAuthenticated, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=seating_exam_${examId}.xlsx`);
     res.send(buffer);
   } catch (err) {
-    console.error(err);
+    console.error('Excel Export Error:', err);
     res.status(500).send('Export Error');
   }
 });
@@ -564,7 +575,7 @@ app.get('/export_seating_pdf/:exam_id', isAuthenticated, async (req, res) => {
     await doc.table(table);
     doc.end();
   } catch (err) {
-    console.error(err);
+    console.error('PDF Export Error:', err);
     res.status(500).send('PDF Generation Error');
   }
 });

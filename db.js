@@ -14,7 +14,8 @@ const UserSchema = new mongoose.Schema({
 });
 
 const StudentSchema = new mongoose.Schema({
-  reg_no: { type: Number, required: true, unique: true, trim: true },
+  // FIX 1: Type changed to String (supports trim, leading zeroes, and alphanumeric roll numbers)
+  reg_no: { type: String, required: true, unique: true, trim: true },
   name: { type: String, required: true, trim: true },
   branch: { type: String, trim: true },
   semester: { type: Number }
@@ -54,19 +55,24 @@ const Room = mongoose.model('Room', RoomSchema);
 const Exam = mongoose.model('Exam', ExamSchema);
 const Seating = mongoose.model('Seating', SeatingSchema);
 
+// FIX 2: Wrapped in try...catch block to catch connection errors cleanly
 async function initDB() {
-  await mongoose.connect(MONGO_URI);
-  console.log('MongoDB connected successfully.');
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log('MongoDB connected successfully.');
 
-  const adminUser = process.env.DEFAULT_ADMIN_USER || 'admin';
-  const adminPass = process.env.DEFAULT_ADMIN_PASS || 'admin123';
+    const adminUser = process.env.DEFAULT_ADMIN_USER || 'shivamkumar035wp';
+    const adminPass = process.env.DEFAULT_ADMIN_PASS || 'Shivam012@';
 
-  // Check default admin account creation
-  const adminExists = await User.findOne({ username: adminUser });
-  if (!adminExists) {
-    const hashedPw = await bcrypt.hash(adminPass, 10);
-    await User.create({ username: adminUser, password: hashedPw, role: 'admin' });
-    console.log(`Default Admin Account Created (Username: ${adminUser})`);
+    // Check default admin account creation
+    const adminExists = await User.findOne({ username: adminUser });
+    if (!adminExists) {
+      const hashedPw = await bcrypt.hash(adminPass, 10);
+      await User.create({ username: adminUser, password: hashedPw, role: 'admin' });
+      console.log(`Default Admin Account Created (Username: ${adminUser})`);
+    }
+  } catch (err) {
+    console.error('DB Init Error:', err);
   }
 }
 
