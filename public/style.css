@@ -33,7 +33,9 @@ header {
     text-decoration: none;
 }
 
-.logout-btn:hover { background: #dc2626; }
+.logout-btn:hover {
+    background: #dc2626;
+}
 
 .container {
     display: flex;
@@ -106,7 +108,9 @@ section {
     border-radius: 10px;
 }
 
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
 
 form {
     display: flex;
@@ -115,10 +119,48 @@ form {
     margin: 20px 0;
 }
 
-input, select {
+input,
+select {
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
+}
+
+.bench-container {
+    display: inline-flex;
+    gap: 6px;
+    background: #e9ecef;
+    padding: 6px;
+    border-radius: 6px;
+    border: 2px solid #ced4da;
+    margin: 4px;
+}
+
+.seat-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    border: 1px solid #6c757d;
+    background-color: #ffffff;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.seat-btn.selected-blue {
+    background-color: #0d6efd !important;
+    color: white !important;
+    border-color: #0a58ca;
+}
+
+.seat-btn.selected-green {
+    background-color: #198754 !important;
+    color: white !important;
+    border-color: #146c43;
 }
 
 button {
@@ -130,17 +172,37 @@ button {
     cursor: pointer;
 }
 
-.btn-green { background: #16a34a; }
-.btn-green:hover { background: #15803d; }
+.btn-green {
+    background: #16a34a;
+}
 
-.btn-blue { background: #2563eb; }
-.btn-blue:hover { background: #1d4ed8; }
+.btn-green:hover {
+    background: #15803d;
+}
 
-.btn-yellow { background: #f59e0b; }
-.btn-yellow:hover { background: #d97706; }
+.btn-blue {
+    background: #2563eb;
+}
 
-.btn-red { background: #dc2626; }
-.btn-red:hover { background: #b91c1c; }
+.btn-blue:hover {
+    background: #1d4ed8;
+}
+
+.btn-yellow {
+    background: #f59e0b;
+}
+
+.btn-yellow:hover {
+    background: #d97706;
+}
+
+.btn-red {
+    background: #dc2626;
+}
+
+.btn-red:hover {
+    background: #b91c1c;
+}
 
 table {
     width: 100%;
@@ -148,13 +210,16 @@ table {
     margin-top: 15px;
 }
 
-th, td {
+th,
+td {
     padding: 12px;
     border-bottom: 1px solid #ddd;
     text-align: left;
 }
 
-th { background: #eef2ff; }
+th {
+    background: #eef2ff;
+}
 
 .form-grid {
     display: grid;
@@ -189,8 +254,15 @@ th { background: #eef2ff; }
     font-weight: bold;
 }
 
-.text-warning { color: #b45309; }
-.no-data-msg { color: #64748b; font-style: italic; margin-top: 10px; }
+.text-warning {
+    color: #b45309;
+}
+
+.no-data-msg {
+    color: #64748b;
+    font-style: italic;
+    margin-top: 10px;
+}
 
 /* SELECTION & FILTER STYLES */
 .selection-card {
@@ -331,11 +403,14 @@ th { background: #eef2ff; }
     padding: 35px;
     border-radius: 10px;
     width: 360px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     text-align: center;
 }
 
-.auth-card h2 { color: #1e3a8a; margin-bottom: 20px; }
+.auth-card h2 {
+    color: #1e3a8a;
+    margin-bottom: 20px;
+}
 
 .auth-tabs {
     display: flex;
@@ -359,7 +434,10 @@ th { background: #eef2ff; }
     gap: 15px;
 }
 
-.auth-form input, .auth-form select { width: 100%; }
+.auth-form input,
+.auth-form select {
+    width: 100%;
+}
 
 .alert {
     padding: 10px;
@@ -368,13 +446,20 @@ th { background: #eef2ff; }
     margin-bottom: 15px;
 }
 
-.alert-error { background: #fee2e2; color: #991b1b; }
-.alert-success { background: #dcfce7; color: #166534; }
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-success {
+    background: #dcfce7;
+    color: #166534;
+}
 
 .pt-serif-caption-regular {
-  font-family: "PT Serif Caption", serif;
-  font-weight: 400;
-  font-style: normal;
+    font-family: "PT Serif Caption", serif;
+    font-weight: 400;
+    font-style: normal;
 }
 
 hr {
@@ -383,7 +468,15 @@ hr {
 }
 
 @media(max-width: 750px) {
-    .container { flex-direction: column; }
-    aside { width: 100%; }
-    .form-grid { grid-template-columns: 1fr; }
+    .container {
+        flex-direction: column;
+    }
+
+    aside {
+        width: 100%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }

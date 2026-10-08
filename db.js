@@ -14,18 +14,20 @@ const UserSchema = new mongoose.Schema({
 });
 
 const StudentSchema = new mongoose.Schema({
-  // FIX 1: Type changed to String (supports trim, leading zeroes, and alphanumeric roll numbers)
   reg_no: { type: String, required: true, unique: true, trim: true },
   name: { type: String, required: true, trim: true },
   branch: { type: String, trim: true },
   semester: { type: Number }
 });
 
+// Dynamic Columns with Variable Rows per Column
 const RoomSchema = new mongoose.Schema({
   room_no: { type: String, required: true, unique: true, trim: true },
-  rows: { type: Number, required: true },
-  columns: { type: Number, required: true },
-  capacity: { type: Number, required: true }
+  columns_config: [{
+    column_no: { type: Number, required: true },
+    rows: { type: Number, required: true }
+  }],
+  capacity: { type: Number, required: true } // Total Benches * 2
 });
 
 const ExamSchema = new mongoose.Schema({
@@ -38,12 +40,15 @@ const ExamSchema = new mongoose.Schema({
   end_time: { type: String, required: true }
 });
 
+// Seating with Left/Right Position (A/B) & Dual-Color Tag
 const SeatingSchema = new mongoose.Schema({
   student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   exam_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam', required: true },
   room_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
-  row_no: { type: Number, required: true },
   column_no: { type: Number, required: true },
+  row_no: { type: Number, required: true },
+  seat_position: { type: String, enum: ['A', 'B'], required: true },
+  color_tag: { type: String, enum: ['blue', 'green'], default: 'blue' },
   seat_no: { type: String, required: true }
 });
 
@@ -55,7 +60,6 @@ const Room = mongoose.model('Room', RoomSchema);
 const Exam = mongoose.model('Exam', ExamSchema);
 const Seating = mongoose.model('Seating', SeatingSchema);
 
-// FIX 2: Wrapped in try...catch block to catch connection errors cleanly
 async function initDB() {
   try {
     await mongoose.connect(MONGO_URI);
@@ -64,7 +68,6 @@ async function initDB() {
     const adminUser = process.env.DEFAULT_ADMIN_USER || 'shivamkumar035wp';
     const adminPass = process.env.DEFAULT_ADMIN_PASS || 'Shivam012@';
 
-    // Check default admin account creation
     const adminExists = await User.findOne({ username: adminUser });
     if (!adminExists) {
       const hashedPw = await bcrypt.hash(adminPass, 10);
