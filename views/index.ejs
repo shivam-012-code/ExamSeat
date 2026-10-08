@@ -124,10 +124,6 @@
 
                     <% if (selectedBranch && selectedSemester) { %>
                         <div id="studentUploadContainer">
-                            <div class="selection-badge">
-                                📍 <strong>Selected Context:</strong> <%= selectedBranch %> — Semester <%= selectedSemester %>
-                            </div>
-
                             <!-- SEARCH FEATURE FOR BRANCH & SEMESTER -->
                             <div class="search-box-card">
                                 <h3><i class="fa-solid fa-magnifying-glass"></i> Search Students in <%= selectedBranch %> (Sem <%= selectedSemester %>)</h3>
@@ -146,7 +142,7 @@
 
                             <div class="form-grid">
                                 <div>
-                                    <h2><i class="fa-solid fa-user-plus"></i> Add Single Student</h2>
+                                    <h2><i class="fa-solid fa-user-plus upload-box"></i> Add Single Student</h2>
                                     <form action="/add_student" method="POST">
                                         <input type="hidden" name="branch" value="<%= selectedBranch %>">
                                         <input type="hidden" name="semester" value="<%= selectedSemester %>">
@@ -168,10 +164,6 @@
                                 </div>
                             </div>
                         </div>
-                    <% } else { %>
-                        <div class="alert alert-info">
-                            💡 Please select both <strong>Branch</strong> and <strong>Semester</strong> above to enable student search, manual addition, and Excel bulk uploading.
-                        </div>
                     <% } %>
 
                     <br>
@@ -188,7 +180,7 @@
                     <% } else { %>
                         <table>
                             <tr>
-                                <th>Reg No</th>
+                                <th>Registration No</th>
                                 <th>Name</th>
                                 <th>Branch</th>
                                 <th>Semester</th>
@@ -254,7 +246,7 @@
                     <form action="/add_exam" method="POST">
                         <input name="subject" placeholder="Subject Name" required>
                         <select name="branch" required class="select-input">
-                            <option value="">-- Select Target Branch --</option>
+                            <option value="">-- Select Branch --</option>
                             <option value="CSE">CSE</option>
                             <option value="ME">ME</option>
                             <option value="AE">AE</option>
@@ -263,7 +255,7 @@
                             <option value="ECE">ECE</option>
                         </select>
                         <select name="semester" required class="select-input">
-                            <option value="">-- Select Target Semester --</option>
+                            <option value="">-- Select Semester --</option>
                             <option value="1">1st</option>
                             <option value="2">2nd</option>
                             <option value="3">3rd</option>
@@ -294,9 +286,9 @@
                     <table>
                         <tr>
                             <th>Subject</th>
-                            <th>Target Branch</th>
-                            <th>Semester</th>
-                            <th>Assigned Room</th>
+                            <th>Branch</th>
+                            <th>Sem</th>
+                            <th>Room</th>
                             <th>Date</th>
                             <th>Time</th>
                             <th>Actions</th>
@@ -313,7 +305,7 @@
                                 <td><%= exam.start_time %> - <%= exam.end_time %></td>
                                 <td>
                                     <a href="/generate_seating/<%= exam.id %>">
-                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i> Randomize & Seats</button>
+                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i> Randomize Seats</button>
                                     </a>
                                     <a href="/export_seating_pdf/<%= exam.id %>">
                                         <button type="button" class="btn-red"><i class="fa-solid fa-file-pdf"></i> PDF</button>
@@ -335,7 +327,7 @@
 
                 <!-- ADMIN & USERS SECTION -->
                 <section id="admin_users" class="hidden">
-                    <h2><i class="fa-solid fa-user-shield"></i> Existing System Admin Accounts (<%= adminUsers.length %> Total)</h2>
+                    <h2><i class="fa-solid fa-user-shield"></i> Existing Admin Accounts (<%= adminUsers.length %> Total)</h2>
                     <table>
                         <tr>
                             <th>ID</th>
@@ -386,7 +378,7 @@
                             <table>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Username / Reg No</th>
+                                    <th>Username</th>
                                     <th>Current Role</th>
                                     <th>Actions</th>
                                 </tr>
@@ -409,10 +401,6 @@
                                 <% }) %>
                             </table>
                         <% } %>
-                    <% } else { %>
-                        <div class="alert alert-info">
-                            🔍 Enter a username above to search for specific registered accounts and update their role to Admin.
-                        </div>
                     <% } %>
                 </section>
 

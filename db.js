@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
 });
 
 const StudentSchema = new mongoose.Schema({
-  reg_no: { type: String, required: true, unique: true, trim: true },
+  reg_no: { type: Number, required: true, unique: true, trim: true },
   name: { type: String, required: true, trim: true },
   branch: { type: String, trim: true },
   semester: { type: Number }
@@ -58,8 +58,8 @@ async function initDB() {
   await mongoose.connect(MONGO_URI);
   console.log('MongoDB connected successfully.');
 
-  const adminUser = process.env.DEFAULT_ADMIN_USER || 'shivamkumar035wp';
-  const adminPass = process.env.DEFAULT_ADMIN_PASS || 'Shivam012@';
+  const adminUser = process.env.DEFAULT_ADMIN_USER || 'admin';
+  const adminPass = process.env.DEFAULT_ADMIN_PASS || 'admin123';
 
   // Check default admin account creation
   const adminExists = await User.findOne({ username: adminUser });
