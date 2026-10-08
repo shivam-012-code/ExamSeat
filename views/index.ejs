@@ -154,7 +154,7 @@
                             <!-- SEARCH FEATURE FOR BRANCH & SEMESTER -->
                             <div class="search-box-card">
                                 <h3><i class="fa-solid fa-magnifying-glass"></i> Search Students in <%= selectedBranch
-                                        %> (Sem <%= selectedSemester %>)</h3>
+                                        %> (Semester <%= selectedSemester %>)</h3>
                                 <form action="/" method="GET" style="display: flex; gap: 10px; margin-top: 10px;">
                                     <input type="hidden" name="branch" value="<%= selectedBranch %>">
                                     <input type="hidden" name="semester" value="<%= selectedSemester %>">
@@ -173,8 +173,8 @@
 
                             <br>
 
-                            <div class="form-grid upload-box">
-                                <div>
+                            <div class="form-grid">
+                                <div class="upload-box">
                                     <h2><i class="fa-solid fa-user-plus"></i> Add Single Student</h2>
                                     <form action="/add_student" method="POST">
                                         <input type="hidden" name="branch" value="<%= selectedBranch %>">
@@ -450,9 +450,8 @@
                     <br>
                     <hr><br>
 
-                    <h2><i class="fa-solid fa-magnifying-glass"></i> Search User to Grant Admin Role</h2>
-                    <p class="select-instruction">Enter a Username to search for a registered account and promote them
-                        to Admin.</p>
+                    <h2><i class="fa-solid fa-magnifying-glass"></i> Search User to Give Admin Role</h2>
+                    <p class="select-instruction">Enter a Username to search for a registered account and make them Admin.</p>
 
                     <form action="/" method="GET" style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <input type="hidden" name="active_tab" value="admin_users">
