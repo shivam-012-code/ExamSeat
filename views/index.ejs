@@ -173,9 +173,9 @@
 
                             <br>
 
-                            <div class="form-grid">
+                            <div class="form-grid upload-box">
                                 <div>
-                                    <h2><i class="fa-solid fa-user-plus" style="background: #f8fafc; padding: 15px; border: 2px dashed #cbd5e1; border-radius: 8px;"></i> Add Single Student</h2>
+                                    <h2><i class="fa-solid fa-user-plus"></i> Add Single Student</h2>
                                     <form action="/add_student" method="POST">
                                         <input type="hidden" name="branch" value="<%= selectedBranch %>">
                                         <input type="hidden" name="semester" value="<%= selectedSemester %>">
@@ -309,7 +309,7 @@
                     <form action="/add_exam" method="POST">
                         <input name="subject" placeholder="Subject Name" required>
                         <select name="branch" required class="select-input">
-                            <option value="">-- Select Branch --</option>
+                            <option value="">-- Branch --</option>
                             <option value="CSE">CSE</option>
                             <option value="ME">ME</option>
                             <option value="AE">AE</option>
@@ -318,7 +318,7 @@
                             <option value="ECE">ECE</option>
                         </select>
                         <select name="semester" required class="select-input">
-                            <option value="">-- Select Semester --</option>
+                            <option value="">-- Semester --</option>
                             <option value="1">1st</option>
                             <option value="2">2nd</option>
                             <option value="3">3rd</option>
