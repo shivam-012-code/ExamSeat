@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamSeat - Sign In</title>
+    <title>ExamSeat - Sign In & Register</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="shortcut icon" href="https://img.icons8.com/pulsar-gradient/48/quiz.png" type="image/x-icon">
@@ -12,10 +12,11 @@
 
 <body class="auth-body">
 
-    <div class="auth-card">
+    <div class="auth-card" style="max-width: 440px;">
         <h2><i class="fa-solid fa-graduation-cap"></i> ExamSeat</h2>
 
-        <div class="auth-tabs">
+        <!-- TABS: FORGOT PASSWORD ME AUTOMATICALLY HIDE HO JAYENGE -->
+        <div id="mainAuthTabs" class="auth-tabs">
             <button id="loginTabBtn" class="active" onclick="switchAuthMode('login')">Sign In</button>
             <button id="registerTabBtn" onclick="switchAuthMode('register')">Register</button>
         </div>
@@ -28,37 +29,288 @@
             <div class="alert alert-success"><%= success %></div>
         <% } %>
 
+        <!-- SIGN IN FORM -->
         <form id="loginForm" action="/login" method="POST" class="auth-form">
             <input type="text" name="username" placeholder="Username / Registration Number" required>
             <input type="password" name="password" placeholder="Enter Password" required>
             <button type="submit">Sign In</button>
+            <button type="button" class="forgot-link-btn" onclick="switchAuthMode('forgot')">Forgot Password?</button>
         </form>
 
+        <!-- REGISTER FORM WITH REAL-TIME EMAIL OTP VERIFICATION -->
         <form id="registerForm" action="/register" method="POST" class="auth-form hidden">
-            <input type="text" name="username" placeholder="Registration Number" required>
-            <input type="password" name="password" placeholder="Create Password" required>
-            <button type="submit">Register Account</button>
+            <input type="text" id="regUsername" name="username" placeholder="Registration Number (e.g. 121XXXXXXX)" required>
+            
+            <div class="input-inline-btn">
+                <input type="email" id="regEmail" name="email" placeholder="Enter Email Address" required>
+                <button type="button" class="btn-blue" id="btnGenRegOtp" onclick="generateRegisterEmailOtp()">Generate OTP</button>
+            </div>
+            <div id="regOtpMsg" class="status-msg"></div>
+
+            <div class="input-inline-btn" id="regOtpRow" style="display: none;">
+                <input type="text" id="regOtpInput" placeholder="Enter 6-digit OTP from Email" maxlength="6">
+                <button type="button" class="btn-green" id="btnVerifyRegOtp" onclick="verifyRegisterEmailOtp()">Verify OTP</button>
+            </div>
+
+            <!-- Password disabled rahega jb tk Email  verified nhi ho jata  -->
+            <input type="password" id="regPassword" name="password" placeholder="Create Password" required disabled title="First verify your Email OTP">
+            <button type="submit" id="regSubmitBtn" disabled>Register Account</button>
         </form>
+
+        <!-- Forgot Password (TABS COMPLETELY HIDDEN) -->
+        <div id="forgotForm" class="auth-form hidden">
+            <h3 style="margin-top: 0; font-size: 16px; color: #1e3a8a;"><i class="fa-solid fa-key"></i> Reset Your Password</h3>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Enter your Registration Number and Registered Email Address to reset Password.</p>
+            
+            <input type="text" id="forgotUsername" placeholder="Registration Number" required>
+            <br><br>
+            
+            <div class="input-inline-btn">
+                <input type="email" id="forgotEmail" placeholder="Registered Email Address" required>
+                <button type="button" class="btn-blue" id="btnGenForgotOtp" onclick="generateForgotEmailOtp()">Send OTP</button>
+            </div>
+            <div id="forgotOtpMsg" class="status-msg"></div>
+
+            <div class="input-inline-btn" id="forgotOtpRow" style="display: none;">
+                <input type="text" id="forgotOtpInput" placeholder="Enter 6-digit OTP from Email" maxlength="6">
+                <button type="button" class="btn-green" id="btnVerifyForgotOtp" onclick="verifyForgotEmailOtp()">Verify OTP</button>
+            </div>
+
+            <div id="forgotNewPassRow" style="display: none;">
+                <input type="password" id="forgotNewPassInput" placeholder="Enter New Password" required>
+                <button type="button" class="btn-green" style="width: 100%;" onclick="submitResetPasswordEmail()">Update Password</button>
+            </div>
+
+            <button type="button" class="forgot-link-btn" style="text-align: center; margin-top: 15px;" onclick="switchAuthMode('login')">← Back to Sign In</button>
+        </div>
+
     </div>
 
     <script>
         function switchAuthMode(mode) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
+            const forgotForm = document.getElementById('forgotForm');
             const loginBtn = document.getElementById('loginTabBtn');
             const registerBtn = document.getElementById('registerTabBtn');
+            const mainTabs = document.getElementById('mainAuthTabs');
+
+            loginForm.classList.add('hidden');
+            registerForm.classList.add('hidden');
+            forgotForm.classList.add('hidden');
+            loginBtn.classList.remove('active');
+            registerBtn.classList.remove('active');
 
             if (mode === 'login') {
+                mainTabs.style.display = 'flex';
                 loginForm.classList.remove('hidden');
-                registerForm.classList.add('hidden');
                 loginBtn.classList.add('active');
-                registerBtn.classList.remove('active');
-            } else {
-                loginForm.classList.add('hidden');
+            } else if (mode === 'register') {
+                mainTabs.style.display = 'flex';
                 registerForm.classList.remove('hidden');
-                loginBtn.classList.remove('active');
                 registerBtn.classList.add('active');
+            } else if (mode === 'forgot') {
+                mainTabs.style.display = 'none'; // Forgot pass me tabs hide krne ke liye
+                forgotForm.classList.remove('hidden');
             }
+        }
+
+        // --- REGISTRATION EMAIL OTP LOGIC ---
+        async function generateRegisterEmailOtp() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const msgBox = document.getElementById('regOtpMsg');
+            const btn = document.getElementById('btnGenRegOtp');
+
+            if (!username) {
+                showStatus(msgBox, 'First enter your Registration Number.', false);
+                return;
+            }
+            if (!email || !email.includes('@')) {
+                showStatus(msgBox, 'Please enter Valid Email Address.', false);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Sending Email...';
+
+            try {
+                const res = await fetch('/api/otp/send-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerText = 'Resend OTP';
+
+                if (data.success) {
+                    showStatus(msgBox, data.message, true);
+                    document.getElementById('regOtpRow').style.display = 'flex';
+                } else {
+                    showStatus(msgBox, data.message, false);
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = 'Generate OTP';
+                showStatus(msgBox, 'Server dwara email send karne me error aayi.', false);
+            }
+        }
+
+        async function verifyRegisterEmailOtp() {
+            const email = document.getElementById('regEmail').value.trim();
+            const otp = document.getElementById('regOtpInput').value.trim();
+            const msgBox = document.getElementById('regOtpMsg');
+            const btn = document.getElementById('btnVerifyRegOtp');
+
+            if (!otp || otp.length !== 6) {
+                showStatus(msgBox, 'Enter 6-digit OTP from Email.', false);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Verifying...';
+
+            try {
+                const res = await fetch('/api/otp/verify-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerText = 'Verify OTP';
+
+                if (data.success) {
+                    showStatus(msgBox, data.message, true);
+                    // Password field aur Register button enable karna
+                    document.getElementById('regPassword').disabled = false;
+                    document.getElementById('regSubmitBtn').disabled = false;
+                    document.getElementById('regEmail').readOnly = true;
+                    document.getElementById('regUsername').readOnly = true;
+                    document.getElementById('btnGenRegOtp').disabled = true;
+                    document.getElementById('regOtpRow').style.display = 'none';
+                } else {
+                    showStatus(msgBox, data.message, false);
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = 'Verify OTP';
+                showStatus(msgBox, 'Verification failed', false);
+            }
+        }
+
+        // --- FORGOT PASSWORD EMAIL OTP LOGIC ---
+        async function generateForgotEmailOtp() {
+            const username = document.getElementById('forgotUsername').value.trim();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const msgBox = document.getElementById('forgotOtpMsg');
+            const btn = document.getElementById('btnGenForgotOtp');
+
+            if (!username || !email) {
+                showStatus(msgBox, 'Registration Number aur Email dono enter karein.', false);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Sending Email...';
+
+            try {
+                const res = await fetch('/api/otp/send-forgot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerText = 'Resend OTP';
+
+                if (data.success) {
+                    showStatus(msgBox, data.message, true);
+                    document.getElementById('forgotOtpRow').style.display = 'flex';
+                } else {
+                    showStatus(msgBox, data.message, false);
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = 'Send OTP';
+                showStatus(msgBox, 'Issue in sending Email.', false);
+            }
+        }
+
+        async function verifyForgotEmailOtp() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const otp = document.getElementById('forgotOtpInput').value.trim();
+            const msgBox = document.getElementById('forgotOtpMsg');
+            const btn = document.getElementById('btnVerifyForgotOtp');
+
+            if (!otp || otp.length !== 6) {
+                showStatus(msgBox, 'Enter 6-digit OTP.', false);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Verifying...';
+
+            try {
+                const res = await fetch('/api/otp/verify-forgot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerText = 'Verify OTP';
+
+                if (data.success) {
+                    showStatus(msgBox, data.message, true);
+                    document.getElementById('forgotOtpRow').style.display = 'none';
+                    document.getElementById('btnGenForgotOtp').disabled = true;
+                    document.getElementById('forgotUsername').readOnly = true;
+                    document.getElementById('forgotEmail').readOnly = true;
+                    document.getElementById('forgotNewPassRow').style.display = 'block';
+                } else {
+                    showStatus(msgBox, data.message, false);
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = 'Verify OTP';
+                showStatus(msgBox, 'Verification error', false);
+            }
+        }
+
+        async function submitResetPasswordEmail() {
+            const username = document.getElementById('forgotUsername').value.trim();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const newPassword = document.getElementById('forgotNewPassInput').value;
+            const msgBox = document.getElementById('forgotOtpMsg');
+
+            if (!newPassword || newPassword.length < 4) {
+                showStatus(msgBox, 'Password must be of minimum 4 characters.', false);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, new_password: newPassword })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '/login';
+                } else {
+                    showStatus(msgBox, data.message, false);
+                }
+            } catch (err) {
+                showStatus(msgBox, 'Error in updating Password.', false);
+            }
+        }
+
+        function showStatus(elem, msg, isSuccess) {
+            elem.innerText = msg;
+            elem.className = isSuccess ? 'status-msg status-success' : 'status-msg status-error';
         }
     </script>
 

@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ExamSeat Portal</title>
     <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="shortcut icon" href="https://img.icons8.com/pulsar-gradient/48/quiz.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,13 +18,8 @@
     <header>
         <h2><i class="fa-solid fa-graduation-cap"></i> ExamSeat</h2>
         <div class="user-info">
-            <span><b><i class="fa-solid fa-user"></i></b>
-                <%= user.username %> (<strong style="text-transform: capitalize;">
-                        <%= user.role %>
-                    </strong>)
-            </span>
-            <a href="/logout" class="logout-btn"><strong>Logout</strong> <i
-                    class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            <span><b><i class="fa-solid fa-user"></i></b> <%= user.username %> (<strong style="text-transform: capitalize;"> <%= user.role %></strong>)</span>
+            <a href="/logout" class="logout-btn"><strong>Logout</strong> <i class="fa-solid fa-arrow-right-from-bracket"></i></a>
         </div>
     </header>
 
@@ -34,13 +28,18 @@
         <aside>
             <button onclick="showSection('dashboard')"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard</button>
             <% if (user.role==='admin' ) { %>
-                <button onclick="showSection('students')"><i class="fa-solid fa-user-graduate"></i> Students &
-                    Upload</button>
+                <button onclick="showSection('students')"><i class="fa-solid fa-user-graduate"></i> Students & Upload</button>
                 <button onclick="showSection('rooms')"><i class="fa-solid fa-school"></i> Rooms</button>
                 <button onclick="showSection('exams')"><i class="fa-solid fa-file-pen"></i> Exams & Seating</button>
+                <button onclick="showSection('marks')"><i class="fa-solid fa-file-arrow-up"></i> Marks & Papers</button>
+                <button onclick="showSection('pyqs')"><i class="fa-solid fa-book-open"></i> Pyqs & Questions</button>
+                <button onclick="showSection('admin_chat')"><i class="fa-solid fa-comments"></i> Chat Feature</button>
                 <button onclick="showSection('admin_users')"><i class="fa-solid fa-user-shield"></i> Admin</button>
                 <% } else { %>
                     <button onclick="showSection('my_seating')"><i class="fa-solid fa-couch"></i> My Exam Seat</button>
+                    <button onclick="showSection('my_exams_marks')"><i class="fa-solid fa-square-poll-vertical"></i> My Exams & Marks</button>
+                    <button onclick="showSection('student_pyqs')"><i class="fa-solid fa-book-open"></i> Pyqs & Questions</button>
+                    <button onclick="showSection('student_chat')"><i class="fa-solid fa-comments"></i> Chat Feature</button>
                     <% } %>
         </aside>
 
@@ -48,33 +47,24 @@
 
             <!-- DASHBOARD -->
             <section id="dashboard">
-                <h1 style="font-size: 30px;">Welcome, <%= user.username %>
-                </h1>
+                <h1 style="font-size: 30px;">Welcome, <%= user.username %></h1>
                 <br>
-                <p style="font-size: 20px;">Role: <strong>
-                        <%= user.role.toUpperCase() %>
-                    </strong></p>
+                <p style="font-size: 20px;">Role: <strong><%= user.role.toUpperCase() %></strong></p>
                 <br>
 
                 <% if (user.role==='admin' ) { %>
                     <div class="cards">
                         <div class="card">
                             <h3>Students</h3>
-                            <p class="pt-serif-caption-regular">
-                                <%= students.length %>
-                            </p>
+                            <p class="pt-serif-caption-regular"><%= students.length %></p>
                         </div>
                         <div class="card">
                             <h3>Rooms</h3>
-                            <p class="pt-serif-caption-regular">
-                                <%= rooms.length %>
-                            </p>
+                            <p class="pt-serif-caption-regular"><%= rooms.length %></p>
                         </div>
                         <div class="card">
                             <h3>Exams</h3>
-                            <p class="pt-serif-caption-regular">
-                                <%= exams.length %>
-                            </p>
+                            <p class="pt-serif-caption-regular"><%= exams.length %></p>
                         </div>
                     </div>
                     <% } else { %>
@@ -82,22 +72,12 @@
                         <div class="student-profile-card">
                             <h2>Personal Details</h2>
                             <% if (studentInfo) { %>
-                                <p><strong>Name:</strong>
-                                    <%= studentInfo.name %>
-                                </p>
-                                <p><strong>Reg No:</strong>
-                                    <%= studentInfo.reg_no %>
-                                </p>
-                                <p><strong>Branch:</strong>
-                                    <%= studentInfo.branch || 'N/A' %>
-                                </p>
-                                <p><strong>Semester:</strong>
-                                    <%= studentInfo.semester ? studentInfo.semester + 'th Semester' : 'N/A' %>
-                                </p>
+                                <p><strong>Name:</strong> <%= studentInfo.name %></p>
+                                <p><strong>Reg No:</strong> <%= studentInfo.reg_no %></p>
+                                <p><strong>Branch:</strong> <%= studentInfo.branch || 'N/A' %></p>
+                                <p><strong>Semester:</strong> <%= studentInfo.semester ? studentInfo.semester : 'N/A' %></p>
                                 <% } else { %>
-                                    <p class="text-warning">⚠️ Student profile record not found for Reg No <strong>
-                                            <%= user.username %>
-                                        </strong>. Please ensure your username matches your registered Reg Number.</p>
+                                    <p class="text-warning">⚠️ Student profile record not found for this Registration Number <strong><%= user.username %></strong>.</p>
                                     <% } %>
                         </div>
                         <% } %>
@@ -105,12 +85,11 @@
 
             <% if (user.role==='admin' ) { %>
 
-                <!-- STUDENTS SECTION WITH CONTEXTUAL SEARCH -->
+                <!-- STUDENTS SECTION -->
                 <section id="students" class="hidden">
                     <div class="selection-card">
                         <h2><i class="fa-solid fa-filter"></i> Select Branch & Semester</h2>
-                        <p class="select-instruction">Select a Branch first, then choose a Semester from 1st to 6th to
-                            view, search, or upload student records.</p>
+                        <p class="select-instruction">Select a Branch first, then choose a Semester from 1st to 6th to view, search, or upload student records.</p>
 
                         <div class="filter-controls">
                             <div class="control-group">
@@ -128,8 +107,7 @@
 
                             <div class="control-group">
                                 <label><strong>2. Semester:</strong></label>
-                                <select id="selectSemester" onchange="handleSemesterChange()" class="select-input"
-                                    <%=selectedBranch ? '' : 'disabled' %>>
+                                <select id="selectSemester" onchange="handleSemesterChange()" class="select-input" <%=selectedBranch ? '' : 'disabled' %>>
                                     <option value="">-- Choose Semester --</option>
                                     <option value="1" <%=selectedSemester=='1' ? 'selected' : '' %>>1st</option>
                                     <option value="2" <%=selectedSemester=='2' ? 'selected' : '' %>>2nd</option>
@@ -142,8 +120,7 @@
 
                             <% if (selectedBranch || selectedSemester) { %>
                                 <div class="control-group" style="align-self: flex-end;">
-                                    <a href="/" class="btn-clear-filter"><i class="fa-solid fa-rotate-left"></i> View
-                                        All Students</a>
+                                    <a href="/" class="btn-clear-filter"><i class="fa-solid fa-rotate-left"></i> View All Students</a>
                                 </div>
                                 <% } %>
                         </div>
@@ -151,22 +128,15 @@
 
                     <% if (selectedBranch && selectedSemester) { %>
                         <div id="studentUploadContainer">
-                            <!-- SEARCH FEATURE FOR BRANCH & SEMESTER -->
                             <div class="search-box-card">
-                                <h3><i class="fa-solid fa-magnifying-glass"></i> Search Students in <%= selectedBranch
-                                        %> (Semester <%= selectedSemester %>)</h3>
+                                <h3><i class="fa-solid fa-magnifying-glass"></i> Search Students in <%= selectedBranch %> (Semester <%= selectedSemester %>)</h3>
                                 <form action="/" method="GET" style="display: flex; gap: 10px; margin-top: 10px;">
                                     <input type="hidden" name="branch" value="<%= selectedBranch %>">
                                     <input type="hidden" name="semester" value="<%= selectedSemester %>">
-                                    <input name="student_search"
-                                        placeholder="Search by Student Name or Registration Number"
-                                        value="<%= studentSearchQuery %>" style="flex: 1;" class="select-input">
-                                    <button type="submit" class="btn-blue"><i class="fa-solid fa-search"></i>
-                                        Search</button>
+                                    <input name="student_search" placeholder="Search by Student Name or Registration Number" value="<%= studentSearchQuery %>" style="flex: 1;" class="select-input">
+                                    <button type="submit" class="btn-blue"><i class="fa-solid fa-search"></i> Search</button>
                                     <% if (studentSearchQuery) { %>
-                                        <a href="/?branch=<%= encodeURIComponent(selectedBranch) %>&semester=<%= encodeURIComponent(selectedSemester) %>"
-                                            class="btn-clear-filter"
-                                            style="display: inline-flex; align-items: center;">Clear Search</a>
+                                        <a href="/?branch=<%= encodeURIComponent(selectedBranch) %>&semester=<%= encodeURIComponent(selectedSemester) %>" class="btn-clear-filter" style="display: inline-flex; align-items: center;">Clear Search</a>
                                         <% } %>
                                 </form>
                             </div>
@@ -183,8 +153,7 @@
                                         <input name="name" placeholder="Student Name" required>
                                         <button type="submit">Add Student</button>
                                     </form>
-                                    <small><strong>Note:</strong> The Registration Number is in the format of
-                                        <strong>121XXXXXXX</strong></small>
+                                    <small><strong>Note:</strong> The Registration Number is in the format of <strong>121XXXXXXX</strong></small>
                                 </div>
 
                                 <div class="upload-box">
@@ -193,11 +162,12 @@
                                         <input type="hidden" name="branch" value="<%= selectedBranch %>">
                                         <input type="hidden" name="semester" value="<%= selectedSemester %>">
                                         <input type="file" name="excel_file" accept=".xlsx, .xls" required>
-                                        <button type="submit" class="btn-green"><i class="fa-solid fa-upload"></i>
-                                            Upload</button>
+                                        <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                            <button type="submit" class="btn-green" style="flex: 1;"><i class="fa-solid fa-upload"></i> Upload</button>
+                                            <button type="button" class="btn-blue" style="flex: 1;" onclick="openSampleExcelModal()"><i class="fa-solid fa-file-excel"></i> Sample Excel</button>
+                                        </div>
                                     </form>
-                                    <small><strong>Note:</strong> The excel must be in the format of <strong>reg_no,
-                                            name, branch, semester</strong></small>
+                                    <small><strong>Note:</strong> Click 'Sample Excel' to view the excel format.</small>
                                 </div>
                             </div>
                         </div>
@@ -206,17 +176,14 @@
                             <br>
                             <h2>
                                 <% if (selectedBranch && selectedSemester) { %>
-                                    Students in <%= selectedBranch %> (Semester <%= selectedSemester %>) <%
-                                                if(studentSearchQuery) { %>— Matching "<%= studentSearchQuery %>"<% } %>
-                                                        (<%= students.length %> Found)
-                                                            <% } else { %>
-                                                                All Registered Students (<%= students.length %> Total)
-                                                                    <% } %>
+                                    Students in <%= selectedBranch %> (Semester <%= selectedSemester %>) <% if(studentSearchQuery) { %>— Matching "<%= studentSearchQuery %>"<% } %> (<%= students.length %> Found)
+                                <% } else { %>
+                                    All Registered Students (<%= students.length %> Total)
+                                <% } %>
                             </h2>
 
                             <% if (students.length===0) { %>
-                                <p class="no-data-msg">No student records found matching your selection or search query.
-                                </p>
+                                <p class="no-data-msg">No student records found matching your selection or search query.</p>
                                 <% } else { %>
                                     <table>
                                         <tr>
@@ -228,27 +195,15 @@
                                         </tr>
                                         <% students.forEach(student=> { %>
                                             <tr>
+                                                <td><%= student.reg_no %></td>
+                                                <td><%= student.name %></td>
+                                                <td><span class="badge"><%= student.branch || 'N/A' %></span></td>
+                                                <td>Semester <%= student.semester || 'N/A' %></td>
                                                 <td>
-                                                    <%= student.reg_no %>
-                                                </td>
-                                                <td>
-                                                    <%= student.name %>
-                                                </td>
-                                                <td><span class="badge">
-                                                        <%= student.branch || 'N/A' %>
-                                                    </span></td>
-                                                <td>Semester <%= student.semester || 'N/A' %>
-                                                </td>
-                                                <td>
-                                                    <form action="/delete_student/<%= student.id %>" method="POST"
-                                                        style="margin: 0; display: inline;"
-                                                        onsubmit="return confirm('Are you sure you want to delete <%= student.name %>?');">
-                                                        <input type="hidden" name="branch"
-                                                            value="<%= selectedBranch %>">
-                                                        <input type="hidden" name="semester"
-                                                            value="<%= selectedSemester %>">
-                                                        <button type="submit" class="btn-red"><i
-                                                                class="fa-solid fa-trash"></i> Delete</button>
+                                                    <form action="/delete_student/<%= student.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to delete <%= student.name %>?');">
+                                                        <input type="hidden" name="branch" value="<%= selectedBranch %>">
+                                                        <input type="hidden" name="semester" value="<%= selectedSemester %>">
+                                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i> Delete</button>
                                                     </form>
                                                 </td>
                                             </tr>
@@ -260,42 +215,68 @@
                 <!-- ROOMS SECTION -->
                 <section id="rooms" class="hidden">
                     <h2><i class="fa-solid fa-school"></i> Add Examination Room</h2>
-                    <form action="/add_room" method="POST">
-                        <input name="room_no" placeholder="Room Number" required>
-                        <input name="rows" type="number" placeholder="Rows" required>
-                        <input name="columns" type="number" placeholder="Columns" required>
-                        <button type="submit">Add Room</button>
+                    <form action="/add_room" method="POST" class="room-form-compact">
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <input name="room_no" placeholder="Room Number" required style="flex: 1;">
+                            <input id="numColumnsInput" name="columns" type="number" min="1" max="20" placeholder="Number of Columns" required style="flex: 1;" onchange="generateColumnRowInputs()" onkeyup="generateColumnRowInputs()">
+                        </div>
+
+                        <div id="columnRowsContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                        <div id="roomSummary" style="font-weight: bold; color: #1e3a8a; display: none; padding: 2px 0;"></div>
+
+                        <div>
+                            <button type="submit" style="width: auto; padding: 10px 25px;">Add Room</button>
+                        </div>
                     </form>
 
-                    <h2>Room List</h2>
+                    <h2 style="margin-top: 25px;"><i class="fa-solid fa-list"></i> Room List</h2>
                     <table>
                         <tr>
                             <th>Room No</th>
-                            <th>Rows</th>
-                            <th>Columns</th>
+                            <th>Total Columns</th>
+                            <th>Column Headers & Rows</th>
                             <th>Capacity</th>
                             <th>Actions</th>
                         </tr>
                         <% rooms.forEach(room=> { %>
                             <tr>
+                                <td><strong><%= room.room_no %></strong></td>
+                                <td><%= room.columns %> Columns</td>
                                 <td>
-                                    <%= room.room_no %>
+                                    <% if (room.column_rows && room.column_rows.length > 0) { %>
+                                        <table style="margin: 0; width: auto; border-collapse: collapse; border: 1px solid #cbd5e1; background: #ffffff;">
+                                            <thead>
+                                                <tr style="background: #eef2ff;">
+                                                    <% room.column_rows.forEach((r, index) => { %>
+                                                        <th style="padding: 4px 10px; font-size: 12px; border: 1px solid #cbd5e1; text-align: center; color: #1e3a8a;">
+                                                            Col <%= index + 1 %>
+                                                        </th>
+                                                    <% }) %>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <% room.column_rows.forEach((r) => { %>
+                                                        <td style="padding: 6px 10px; font-size: 13px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">
+                                                            <%= r %> Rows
+                                                        </td>
+                                                    <% }) %>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    <% } else { %>
+                                        <%= room.rows %> rows/col
+                                    <% } %>
                                 </td>
+                                <td><span class="badge"><%= room.capacity %> Seats</span></td>
                                 <td>
-                                    <%= room.rows %>
-                                </td>
-                                <td>
-                                    <%= room.columns %>
-                                </td>
-                                <td>
-                                    <%= room.capacity %>
-                                </td>
-                                <td>
-                                    <form action="/delete_room/<%= room.id %>" method="POST"
-                                        style="margin: 0; display: inline;"
-                                        onsubmit="return confirm('Are you sure you want to delete Room <%= room.room_no %>?');">
-                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
-                                            Delete</button>
+                                    <button type="button" class="btn-blue" style="margin-right: 5px;"
+                                        onclick="openRoomLayoutModal('<%= room.id %>', '<%= room.room_no %>', '<%= room.columns %>', '<%= JSON.stringify(room.column_rows) %>', '<%= JSON.stringify(room.active_seats || []) %>', '<%= JSON.stringify(room.seat_colors || []) %>')">
+                                        <i class="fa-solid fa-chair"></i> Seat Layout
+                                    </button>
+
+                                    <form action="/delete_room/<%= room.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to delete Room <%= room.room_no %>?');">
+                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i> Delete</button>
                                     </form>
                                 </td>
                             </tr>
@@ -303,117 +284,412 @@
                     </table>
                 </section>
 
-                <!-- EXAMS SECTION WITH DYNAMIC ROOM DROPDOWN -->
+                <!-- EXAMS SECTION -->
                 <section id="exams" class="hidden">
-                    <h2><i class="fa-solid fa-file-pen"></i> Create Exams</h2>
-                    <form action="/add_exam" method="POST">
-                        <input name="subject" placeholder="Subject Name" required>
-                        <select name="branch" required class="select-input">
-                            <option value="">-- Branch --</option>
-                            <option value="CSE">CSE</option>
-                            <option value="ME">ME</option>
-                            <option value="AE">AE</option>
-                            <option value="CE">CE</option>
-                            <option value="EE">EE</option>
-                            <option value="ECE">ECE</option>
-                        </select>
-                        <select name="semester" required class="select-input">
-                            <option value="">-- Semester --</option>
-                            <option value="1">1st</option>
-                            <option value="2">2nd</option>
-                            <option value="3">3rd</option>
-                            <option value="4">4th</option>
-                            <option value="5">5th</option>
-                            <option value="6">6th</option>
-                        </select>
-
-                        <!-- DYNAMIC ROOM DROPDOWN (ONLY SHOWS CREATED ROOMS) -->
-                        <select name="room_id" required class="select-input">
-                            <option value="">-- Select Room --</option>
-                            <% if (rooms.length===0) { %>
-                                <option value="" disabled>⚠ No rooms created yet! Add rooms in Rooms section first.
-                                </option>
-                                <% } else { %>
+                    <h2><i class="fa-solid fa-file-pen"></i> Create Exam & Registration Range</h2>
+                    
+                    <form action="/add_exam" method="POST" style="flex-direction: column; gap: 15px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="font-weight: bold; font-size: 12px;">Select Exam Room:</label>
+                                <select name="room_id" required class="select-input" style="width: 100%; margin-top: 4px;">
+                                    <option value="">-- Select Room --</option>
                                     <% rooms.forEach(r=> { %>
-                                        <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)
-                                        </option>
-                                        <% }) %>
-                                            <% } %>
-                        </select>
+                                        <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)</option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="font-weight: bold; font-size: 12px;">Exam Date:</label>
+                                <input name="exam_date" type="date" required style="width: 100%; margin-top: 4px;">
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-weight: bold; font-size: 12px;">Start Time:</label>
+                                <input name="start_time" type="time" required style="width: 100%; margin-top: 4px;">
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-weight: bold; font-size: 12px;">End Time:</label>
+                                <input name="end_time" type="time" required style="width: 100%; margin-top: 4px;">
+                            </div>
+                        </div>
 
-                        <input name="exam_date" type="date" required>
-                        <input name="start_time" type="time" required>
-                        <input name="end_time" type="time" required>
-                        <button type="submit">Create Exam</button>
+                        <!-- PRIMARY EXAM -->
+                        <div style="background: #eff6ff; border: 2px solid #bfdbfe; padding: 12px; border-radius: 8px;">
+                            <h3 style="margin-top: 0; color: #1e40af; font-size: 15px;">📘 Primary Exam Details (Color 1 - Blue Seats)</h3>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+                                <input name="subject" placeholder="Subject Name" required style="flex: 2; min-width: 200px;">
+                                <select name="branch" required class="select-input" style="flex: 1; min-width: 120px;">
+                                    <option value="">-- Branch --</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="ME">ME</option>
+                                    <option value="AE">AE</option>
+                                    <option value="CE">CE</option>
+                                    <option value="EE">EE</option>
+                                    <option value="ECE">ECE</option>
+                                </select>
+                                <select name="semester" required class="select-input" style="flex: 1; min-width: 120px;">
+                                    <option value="">-- Semester --</option>
+                                    <option value="1">1st</option>
+                                    <option value="2">2nd</option>
+                                    <option value="3">3rd</option>
+                                    <option value="4">4th</option>
+                                    <option value="5">5th</option>
+                                    <option value="6">6th</option>
+                                </select>
+                                <input type="hidden" name="seat_color" value="color1">
+                            </div>
+
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; background: #ffffff; padding: 8px; border-radius: 6px; border: 1px solid #dbeafe;">
+                                <div style="flex: 1; min-width: 180px;">
+                                    <label style="font-weight: bold; font-size: 11px; color: #1e3a8a;">Starting Reg No (Optional):</label>
+                                    <input name="start_reg_no" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px; font-size: 12px;">
+                                </div>
+                                <div style="flex: 1; min-width: 180px;">
+                                    <label style="font-weight: bold; font-size: 11px; color: #1e3a8a;">Stopping Reg No (Optional):</label>
+                                    <input name="stop_reg_no" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px; font-size: 12px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECONDARY PARALLEL EXAM -->
+                        <input type="hidden" name="second_exam_enabled" id="secondExamEnabledInput" value="false">
+
+                        <div id="secondaryExamBox" style="display: none; background: #fef2f2; border: 2px solid #fecaca; padding: 12px; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3 style="margin: 0; color: #991b1b; font-size: 15px;">📕 Parallel / Secondary Exam Details (Color 2 - Red Seats)</h3>
+                                <button type="button" class="btn-red" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSecondaryExam(false)">Remove Second Exam</button>
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                                <input id="subject2Input" name="subject2" placeholder="Second Subject Name" style="flex: 2; min-width: 200px;">
+                                <select name="branch2" class="select-input" style="flex: 1; min-width: 120px;">
+                                    <option value="">-- Branch --</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="ME">ME</option>
+                                    <option value="AE">AE</option>
+                                    <option value="CE">CE</option>
+                                    <option value="EE">EE</option>
+                                    <option value="ECE">ECE</option>
+                                </select>
+                                <select name="semester2" class="select-input" style="flex: 1; min-width: 120px;">
+                                    <option value="">-- Semester --</option>
+                                    <option value="1">1st</option>
+                                    <option value="2">2nd</option>
+                                    <option value="3">3rd</option>
+                                    <option value="4">4th</option>
+                                    <option value="5">5th</option>
+                                    <option value="6">6th</option>
+                                </select>
+                                <input type="hidden" name="seat_color2" value="color2">
+                            </div>
+
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; background: #ffffff; padding: 8px; border-radius: 6px; border: 1px solid #fee2e2;">
+                                <div style="flex: 1; min-width: 180px;">
+                                    <label style="font-weight: bold; font-size: 11px; color: #991b1b;">Starting Reg No (Optional):</label>
+                                    <input name="start_reg_no2" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px; font-size: 12px;">
+                                </div>
+                                <div style="flex: 1; min-width: 180px;">
+                                    <label style="font-weight: bold; font-size: 11px; color: #991b1b;">Stopping Reg No (Optional):</label>
+                                    <input name="stop_reg_no2" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px; font-size: 12px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn-green" style="padding: 10px 25px;"><i class="fa-solid fa-plus"></i> Save Exam(s)</button>
+                            <button type="button" id="addSecondExamBtn" class="btn-yellow" onclick="toggleSecondaryExam(true)"><i class="fa-solid fa-code-fork"></i> Add One More Exam For Same Room (Dual Subject)</button>
+                        </div>
                     </form>
 
-                    <h2>Exam List & Seating Generation</h2>
+                    <h2 style="margin-top: 30px;">Exam List & Seating Generation</h2>
                     <table>
                         <tr>
                             <th>Subject</th>
-                            <th>Branch</th>
-                            <th>Sem</th>
+                            <th>Branch & Sem</th>
                             <th>Room</th>
-                            <th>Date<small>yyyy-mm-dd</small></th>
-                            <th>Time</th>
+                            <th>Range</th>
+                            <th>Seat Color</th>
+                            <th>Date & Time</th>
                             <th>Actions</th>
                         </tr>
-                        <% exams.forEach(exam=> {
-                            const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0]
-                            : '';
-                            %>
+                        <% exams.forEach(exam=> { const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : ''; const isColor2 = exam.seat_color === 'color2'; %>
                             <tr>
-                                <td><strong>
-                                        <%= exam.subject %>
-                                    </strong></td>
-                                <td><span class="badge">
-                                        <%= exam.branch || 'All Branches' %>
-                                    </span></td>
+                                <td><strong><%= exam.subject %></strong></td>
                                 <td>
-                                    <%= exam.semester || 'N/A' %>
+                                    <div class="badge" style="text-align: center;"><%= exam.branch || 'All' %></div>
+                                    Sem <%= exam.semester || 'N/A' %>
                                 </td>
-                                <td><strong>
-                                        <%= exam.room_no ? exam.room_no : 'All Rooms' %>
-                                    </strong></td>
+                                <td><strong><%= exam.room_no ? exam.room_no : 'N/A' %></strong></td>
                                 <td>
-                                    <%= formattedDate %>
+                                    <% if (exam.start_reg_no && exam.stop_reg_no) { %>
+                                        <small><strong><%= exam.start_reg_no %></strong> to <strong><%= exam.stop_reg_no %></strong></small>
+                                    <% } else { %>
+                                        <span style="color: #64748b; font-style: italic;">All Students</span>
+                                    <% } %>
                                 </td>
                                 <td>
-                                    <%= exam.start_time %> - <%= exam.end_time %>
+                                    <% if (isColor2) { %>
+                                        <div class="badge" style="background: #dc2626; color: white;">Red Seats</div>
+                                    <% } else { %>
+                                        <div class="badge" style="background: #2563eb; color: white;">Blue Seats</div>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <%= formattedDate %><br>
+                                    <small><%= exam.start_time %> - <%= exam.end_time %></small>
                                 </td>
                                 <td>
                                     <a href="/generate_seating/<%= exam.id %>">
-                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i>
-                                            Randomize Seats</button>
+                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i> Randomize Seats</button>
                                     </a>
-                                    <a href="/export_seating_pdf/<%= exam.id %>">
-                                        <button type="button" class="btn-red"><i class="fa-solid fa-file-pdf"></i>
-                                            PDF</button>
-                                    </a>
-                                    <a href="/export_seating_excel/<%= exam.id %>">
-                                        <button type="button" class="btn-green"><i class="fa-solid fa-file-excel"></i>
-                                            Excel</button>
-                                    </a>
+
+                                    <div class="export-dropdown">
+                                        <button type="button" class="btn-green"><i class="fa-solid fa-file-export"></i> Export <i class="fa-solid fa-caret-down"></i></button>
+                                        <div class="export-dropdown-content">
+                                            <a href="/export_seating_pdf/<%= exam.id %>" style="color: #dc2626;"><i class="fa-solid fa-file-pdf"></i> PDF File</a>
+                                            <a href="/export_seating_excel/<%= exam.id %>" style="color: #16a34a;"><i class="fa-solid fa-file-excel"></i> Excel Sheet</a>
+                                        </div>
+                                    </div>
+
                                     <button type="button" class="btn-yellow"
-                                        onclick="openEditExamModal('<%= exam.id %>', '<%= exam.subject %>', '<%= exam.branch %>', '<%= exam.semester %>', '<%= exam.room_id %>', '<%= formattedDate %>', '<%= exam.start_time %>', '<%= exam.end_time %>')">
+                                        onclick="openEditExamModal('<%= exam.id %>', '<%= exam.subject %>', '<%= exam.branch %>', '<%= exam.semester %>', '<%= exam.room_id %>', '<%= exam.seat_color %>', '<%= exam.start_reg_no %>', '<%= exam.stop_reg_no %>', '<%= formattedDate %>', '<%= exam.start_time %>', '<%= exam.end_time %>')">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit
                                     </button>
-                                    <form action="/delete_exam/<%= exam.id %>" method="POST"
-                                        style="margin: 0; display: inline;"
-                                        onsubmit="return confirm('Are you sure you want to delete exam for <%= exam.subject %>?');">
-                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
-                                            Delete</button>
+                                    <form action="/delete_exam/<%= exam.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to delete exam for <%= exam.subject %>?');">
+                                        <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i> Delete</button>
                                     </form>
                                 </td>
                             </tr>
                             <% }) %>
                     </table>
+                </section>
+
+                <!-- MARKS & PAPERS SECTION -->
+                <section id="marks" class="hidden">
+                    <h2><i class="fa-solid fa-file-arrow-up"></i> Marks & Question Papers Management</h2>
+                    <p class="select-instruction">You can Upload Question Paper, Marks(in excel), View the uploaded Question Paper, marks, and the sample excel.</p>
+                    <br>
+
+                    <% if (exams.length === 0) { %>
+                        <p class="no-data-msg">No exam has been created until now.</p>
+                    <% } else { %>
+                        <table>
+                            <tr>
+                                <th>Name (Subject)</th>
+                                <th>Branch & Sem</th>
+                                <th>Date(yyyy/mm/dd)</th>
+                                <th>Actions</th>
+                            </tr>
+                            <% exams.forEach(exam => { 
+                                const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : 'N/A';
+                            %>
+                                <tr>
+                                    <td><strong><%= exam.subject %></strong></td>
+                                    <td>
+                                        <span class="badge"><%= exam.branch || 'All' %></span>
+                                        Sem <%= exam.semester || 'N/A' %>
+                                    </td>
+                                    <td><%= formattedDate %></td>
+                                    <td>
+                                        <button type="button" class="btn-blue" onclick="openUploadPaperModal('<%= exam.id %>', '<%= exam.subject %>')">
+                                            <i class="fa-solid fa-upload"></i> Upload Paper
+                                        </button>
+                                        <button type="button" class="btn-green" onclick="openUploadMarksModal('<%= exam.id %>', '<%= exam.subject %>')">
+                                            <i class="fa-solid fa-file-excel"></i> Upload Marks
+                                        </button>
+                                        <button type="button" class="btn-blue" style="background: #0284c7;" onclick="openViewMarksModal('<%= exam.id %>', '<%= exam.subject %>')">
+                                            <i class="fa-solid fa-eye"></i> View Marks
+                                        </button>
+                                        <a href="/download_sample_marks_excel/<%= exam.id %>" style="text-decoration: none;">
+                                            <button type="button" class="btn-yellow" title="Download pre-filled Excel with Seat Allotment headers, Total Marks (20), and Q1-Q9">
+                                                <i class="fa-solid fa-download"></i> Sample Excel
+                                            </button>
+                                        </a>
+                                        <% if (exam.question_paper) { %>
+                                            <a href="<%= exam.question_paper %>" target="_blank" style="text-decoration: none;">
+                                                <button type="button" class="btn-yellow"><i class="fa-solid fa-eye"></i> View Paper</button>
+                                            </a>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </table>
+                    <% } %>
+                </section>
+
+                <!-- PYQs & QUESTIONS SECTION (ADMIN) -->
+                <section id="pyqs" class="hidden">
+                    <h2><i class="fa-solid fa-book-open"></i> Upload PYQs & Practice Questions</h2>
+                    <p class="select-instruction">To upload PYQs or Questions, first select the Branch, Semester, and Subject Name.</p>
+                    <br>
+
+                    <div class="upload-box" style="max-width: 700px; margin-bottom: 25px;">
+                        <form action="/upload_pyq" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; font-size: 12px;">1. Branch:</label>
+                                    <select name="branch" required class="select-input" style="width: 100%; margin-top: 4px;">
+                                        <option value="">-- Choose Branch --</option>
+                                        <option value="CSE">CSE</option>
+                                        <option value="ME">ME</option>
+                                        <option value="AE">AE</option>
+                                        <option value="CE">CE</option>
+                                        <option value="EE">EE</option>
+                                        <option value="ECE">ECE</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; min-width: 120px;">
+                                    <label style="font-weight: bold; font-size: 12px;">2. Semester:</label>
+                                    <select name="semester" required class="select-input" style="width: 100%; margin-top: 4px;">
+                                        <option value="">-- Semester --</option>
+                                        <option value="1">1st</option>
+                                        <option value="2">2nd</option>
+                                        <option value="3">3rd</option>
+                                        <option value="4">4th</option>
+                                        <option value="5">5th</option>
+                                        <option value="6">6th</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 2; min-width: 200px;">
+                                    <label style="font-weight: bold; font-size: 12px;">3. Subject Name:</label>
+                                    <input name="subject" placeholder="e.g. Operating Systems, DBMS" required style="width: 100%; margin-top: 4px;">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="font-weight: bold; font-size: 12px;">4. Paper / Question Title:</label>
+                                <input name="title" placeholder="e.g. End Semester PYQ 2024, Unit 1 Important Questions" required style="width: 100%; margin-top: 4px;">
+                            </div>
+
+                            <div>
+                                <label style="font-weight: bold; font-size: 12px;">5. Select Document / Image / PDF:</label>
+                                <input type="file" name="pyq_file" accept=".pdf, .png, .jpg, .jpeg, .doc, .docx" required style="width: 100%; margin-top: 4px;">
+                            </div>
+
+                            <div>
+                                <button type="submit" class="btn-green" style="padding: 10px 25px;"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Question</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <h2><i class="fa-solid fa-list-check"></i> Uploaded PYQs & Questions (<%= pyqs.length %> Total)</h2>
+                    <% if (pyqs.length === 0) { %>
+                        <p class="no-data-msg">No PYQs or Questions have been uploaded yet.</p>
+                    <% } else { %>
+                        <table>
+                            <tr>
+                                <th>Title</th>
+                                <th>Subject</th>
+                                <th>Branch & Sem</th>
+                                <th>Uploaded Date</th>
+                                <th>Actions</th>
+                            </tr>
+                            <% pyqs.forEach(p => { %>
+                                <tr>
+                                    <td><strong><%= p.title %></strong></td>
+                                    <td><%= p.subject %></td>
+                                    <td>
+                                        <span class="badge"><%= p.branch %></span>
+                                        Sem <%= p.semester %>
+                                    </td>
+                                    <td><%= new Date(p.created_at).toLocaleDateString() %></td>
+                                    <td>
+                                        <a href="<%= p.file_url %>" target="_blank" style="text-decoration: none;">
+                                            <button type="button" class="btn-blue"><i class="fa-solid fa-eye"></i> View</button>
+                                        </a>
+                                        <form action="/delete_pyq/<%= p.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Delete this question paper?');">
+                                            <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i> Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </table>
+                    <% } %>
+                </section>
+
+                <!-- ADMIN CHAT & POLL FEATURE SECTION -->
+                <section id="admin_chat" class="hidden">
+                    <h2><i class="fa-solid fa-comments"></i> Admin Class Chat & Polls</h2>
+                    <p class="select-instruction">First select Branch aur Semester to enter in the chat section of a particular Branch and Semester.</p>
+                    
+                    <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-weight: bold; font-size: 13px;">Branch:</label>
+                            <select id="adminChatBranch" class="select-input" onchange="initAdminChatRoom()">
+                                <option value="">-- Choose Branch --</option>
+                                <option value="CSE">CSE</option>
+                                <option value="ME">ME</option>
+                                <option value="AE">AE</option>
+                                <option value="CE">CE</option>
+                                <option value="EE">EE</option>
+                                <option value="ECE">ECE</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; font-size: 13px;">Semester:</label>
+                            <select id="adminChatSemester" class="select-input" onchange="initAdminChatRoom()">
+                                <option value="">-- Choose Semester --</option>
+                                <option value="1">1st</option>
+                                <option value="2">2nd</option>
+                                <option value="3">3rd</option>
+                                <option value="4">4th</option>
+                                <option value="5">5th</option>
+                                <option value="6">6th</option>
+                            </select>
+                        </div>
+                        <span id="adminChatStatus" style="font-size: 13px; font-weight: bold; color: #64748b;">First select the Branch and Semester.</span>
+                    </div>
+
+                    <div id="adminChatWrapper" class="hidden">
+                        <!-- Create Poll Box -->
+                        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="margin-top: 0; color: #9d174d;"><i class="fa-solid fa-square-poll-horizontal"></i> Create a New Poll for this Class</h3>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <input id="newPollQuestion" placeholder="Enter poll question (e.g. Which topic needs a revision session?)" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 6px;">
+                                    <input class="poll-option-input" placeholder="Option 1" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input class="poll-option-input" placeholder="Option 2" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                </div>
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <button type="button" class="btn-blue" style="font-size: 11px; padding: 4px 8px;" onclick="addPollOptionInput()">+ Add Another Option</button>
+                                    <label style="font-size: 13px; font-weight: bold; color: #1e293b; margin-left: 10px;">
+                                        <input type="checkbox" id="pollIsMultiple"> Allow Multiple Choices (Multi-option poll)
+                                    </label>
+                                    <button type="button" class="btn-green" style="margin-left: auto; padding: 8px 18px;" onclick="submitCreatePoll()"><i class="fa-solid fa-paper-plane"></i> Publish Poll</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grid: Polls Feed & Chat Box -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- Active Polls List -->
+                            <div>
+                                <h3 style="margin-top: 0; color: #1e3a8a;"><i class="fa-solid fa-chart-simple"></i> Class Polls (Active 48h)</h3>
+                                <div id="adminPollsList" style="max-height: 500px; overflow-y: auto;">
+                                    <p style="color: #64748b; font-style: italic;">Loading polls...</p>
+                                </div>
+                            </div>
+
+                            <!-- Live Chat -->
+                            <div>
+                                <h3 style="margin-top: 0; color: #1e3a8a;"><i class="fa-solid fa-message"></i> Class Chat (Auto-Deletes in 24h)</h3>
+                                <div class="chat-container">
+                                    <div class="chat-messages" id="adminChatMessages">
+                                        <!-- Messages loaded dynamically -->
+                                    </div>
+                                    <div class="chat-input-bar">
+                                        <input id="adminMsgInput" placeholder="Type a message to the students..." style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;" onkeypress="handleAdminChatKey(event)">
+                                        <button type="button" class="btn-blue" onclick="sendAdminMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ADMIN & USERS SECTION -->
                 <section id="admin_users" class="hidden">
-                    <h2><i class="fa-solid fa-user-shield"></i> Existing Admin Accounts (<%= adminUsers.length %> Total)
-                    </h2>
+                    <h2><i class="fa-solid fa-user-shield"></i> Existing Admin Accounts (<%= adminUsers.length %> Total)</h2>
+                    
                     <table>
                         <tr>
                             <th>Admin Username</th>
@@ -423,21 +699,14 @@
                         </tr>
                         <% adminUsers.forEach(a=> { %>
                             <tr>
-                                <td><strong>
-                                        <%= a.username %>
-                                    </strong></td>
+                                <td><strong><%= a.username %></strong></td>
                                 <td><span class="badge">ADMIN</span></td>
-                                <td>
-                                    <%= new Date(a.created_at).toLocaleDateString() %>
-                                </td>
+                                <td><%= new Date(a.created_at).toLocaleDateString() %></td>
                                 <td>
                                     <% if (a.id !==user.id) { %>
-                                        <form action="/delete_admin/<%= a.id %>" method="POST"
-                                            style="margin: 0; display: inline;"
-                                            onsubmit="return confirm('Are you sure you want to delete Admin <%= a.username %>?');">
+                                        <form action="/delete_admin/<%= a.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to delete Admin <%= a.username %>?');">
                                             <input type="hidden" name="user_search" value="<%= userSearchQuery %>">
-                                            <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i>
-                                                Delete Admin</button>
+                                            <button type="submit" class="btn-red"><i class="fa-solid fa-trash"></i> Delete Admin</button>
                                         </form>
                                         <% } else { %>
                                             <span style="color: #64748b; font-style: italic;">(Current Account)</span>
@@ -455,13 +724,10 @@
 
                     <form action="/" method="GET" style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <input type="hidden" name="active_tab" value="admin_users">
-                        <input name="user_search" placeholder="Enter Username" value="<%= userSearchQuery %>" required
-                            style="flex: 1;">
+                        <input name="user_search" placeholder="Enter Username" value="<%= userSearchQuery %>" required style="flex: 1;">
                         <button type="submit" class="btn-blue"><i class="fa-solid fa-search"></i> Search User</button>
                         <% if (userSearchQuery) { %>
-                            <a href="/?active_tab=admin_users" class="btn-clear-filter"
-                                style="display: inline-flex; align-items: center; justify-content: center;">Clear
-                                Search</a>
+                            <a href="/?active_tab=admin_users" class="btn-clear-filter" style="display: inline-flex; align-items: center; justify-content: center;">Clear Search</a>
                             <% } %>
                     </form>
 
@@ -479,27 +745,16 @@
                                     </tr>
                                     <% searchedUsers.forEach(u=> { %>
                                         <tr>
-                                            <td>
-                                                <%= u.id %>
-                                            </td>
-                                            <td>
-                                                <%= u.username %>
-                                            </td>
-                                            <td><strong style="text-transform: uppercase;">
-                                                    <%= u.role %>
-                                                </strong></td>
+                                            <td><%= u.id %></td>
+                                            <td><%= u.username %></td>
+                                            <td><strong style="text-transform: uppercase;"><%= u.role %></strong></td>
                                             <td>
                                                 <% if (u.role==='admin' ) { %>
                                                     <span class="badge">Already Admin</span>
                                                     <% } else { %>
-                                                        <form action="/make_admin/<%= u.id %>" method="POST"
-                                                            style="margin: 0; display: inline;"
-                                                            onsubmit="return confirm('Promote <%= u.username %> to Admin?');">
-                                                            <input type="hidden" name="user_search"
-                                                                value="<%= userSearchQuery %>">
-                                                            <button type="submit" class="btn-blue"><i
-                                                                    class="fa-solid fa-user-gear"></i> Make
-                                                                Admin</button>
+                                                        <form action="/make_admin/<%= u.id %>" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Promote <%= u.username %> to Admin?');">
+                                                            <input type="hidden" name="user_search" value="<%= userSearchQuery %>">
+                                                            <button type="submit" class="btn-blue"><i class="fa-solid fa-user-gear"></i> Make Admin</button>
                                                         </form>
                                                         <% } %>
                                             </td>
@@ -512,12 +767,11 @@
 
                 <% } else { %>
 
-                    <!-- STUDENT VIEW -->
+                    <!-- STUDENT VIEW: SEATING -->
                     <section id="my_seating">
                         <h2>💺 My Assigned Exam Seats</h2>
                         <% if (studentSeating.length===0) { %>
-                            <p class="no-data-msg">No seating arrangements generated for your exams yet. Check back once
-                                the admin generates the plan.</p>
+                            <p class="no-data-msg">No seating arrangements generated for your exams yet. Check back once the admin generates the plan.</p>
                             <% } else { %>
                                 <table>
                                     <tr>
@@ -525,37 +779,177 @@
                                         <th>Date</th>
                                         <th>Timing</th>
                                         <th>Room No</th>
-                                        <th>Row</th>
                                         <th>Column</th>
+                                        <th>Row (Bench)</th>
                                         <th>Assigned Seat</th>
                                     </tr>
                                     <% studentSeating.forEach(s=> { %>
                                         <tr>
-                                            <td><strong>
-                                                    <%= s.subject %>
-                                                </strong></td>
-                                            <td>
-                                                <%= new Date(s.exam_date).toISOString().split('T')[0] %>
-                                            </td>
-                                            <td>
-                                                <%= s.start_time %> - <%= s.end_time %>
-                                            </td>
-                                            <td>
-                                                <%= s.room_no %>
-                                            </td>
-                                            <td>
-                                                <%= s.row_no %>
-                                            </td>
-                                            <td>
-                                                <%= s.column_no %>
-                                            </td>
-                                            <td><span class="badge">
-                                                    <%= s.seat_no %>
-                                                </span></td>
+                                            <td><strong><%= s.subject %></strong></td>
+                                            <td><%= new Date(s.exam_date).toISOString().split('T')[0] %></td>
+                                            <td><%= s.start_time %> - <%= s.end_time %></td>
+                                            <td><%= s.room_no %></td>
+                                            <td>Column <%= s.column_no %></td>
+                                            <td>Bench <%= s.row_no %></td>
+                                            <td><span class="badge"><%= s.seat_no %></span></td>
                                         </tr>
                                         <% }) %>
                                 </table>
                                 <% } %>
+                    </section>
+
+                    <!-- STUDENT VIEW: MY EXAMS & MARKS -->
+                    <section id="my_exams_marks" class="hidden">
+                        <h2><i class="fa-solid fa-square-poll-vertical"></i> My Exams, Question Papers & Marks</h2>
+                        <% if (!studentExamsWithMarks || studentExamsWithMarks.length === 0) { %>
+                            <p class="no-data-msg">No exam or marks records available yet for your branch and semester.</p>
+                        <% } else { %>
+                            <table>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Date & Timing</th>
+                                    <th>Question Paper</th>
+                                    <th>My Marks & Breakdown</th>
+                                </tr>
+                                <% studentExamsWithMarks.forEach(e => { %>
+                                    <tr>
+                                        <td><strong><%= e.subject %></strong></td>
+                                        <td><%= e.exam_date %><br><small><%= e.start_time %> - <%= e.end_time %></small></td>
+                                        <td>
+                                            <% if (e.question_paper) { %>
+                                                <a href="<%= e.question_paper %>" target="_blank" style="text-decoration: none;">
+                                                    <button type="button" class="btn-blue" style="padding: 5px 12px; font-size: 12px;">
+                                                        <i class="fa-solid fa-download"></i> Download Paper
+                                                    </button>
+                                                </a>
+                                            <% } else { %>
+                                                <span style="color: #94a3b8; font-style: italic;">Not Uploaded Yet</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (e.marks !== null && e.marks !== undefined) { %>
+                                                <span class="badge" style="background: #16a34a; color: white; font-size: 13px; padding: 6px 12px;">
+                                                    Total: <%= e.marks %> / <%= e.total_marks %>
+                                                </span>
+
+                                                <% if (e.question_wise_marks && Object.keys(e.question_wise_marks).length > 0) { %>
+                                                    <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;">
+                                                        <% Object.entries(e.question_wise_marks).forEach(([q, val]) => { %>
+                                                            <span style="background: #e2e8f0; color: #1e293b; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #cbd5e1;">
+                                                                <%= q %>: <%= val %>
+                                                            </span>
+                                                        <% }) %>
+                                                    </div>
+                                                <% } %>
+                                            <% } else { %>
+                                                <span style="color: #94a3b8; font-style: italic;">Not Published</span>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </table>
+                        <% } %>
+                    </section>
+
+                    <!-- STUDENT VIEW: PYQs & QUESTIONS -->
+                    <section id="student_pyqs" class="hidden">
+                        <h2><i class="fa-solid fa-book-open"></i> PYQs & Practice Questions</h2>
+                        
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <span style="color: #1e3a8a; font-weight: bold;">Branch:</span> <span class="badge"><%= studentInfo ? studentInfo.branch : 'N/A' %></span>
+                                &nbsp;&nbsp;
+                                <span style="color: #1e3a8a; font-weight: bold;">Semester:</span> <span class="badge"><%= studentInfo ? studentInfo.semester + 'th' : 'N/A' %></span>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label style="font-weight: bold; font-size: 13px; color: #1e3a8a;">Filter by Subject:</label>
+                                <select id="studentSubjectFilter" onchange="filterStudentPyqs()" class="select-input" style="min-width: 180px;">
+                                    <option value="">-- All Subjects --</option>
+                                    <% studentSubjects.forEach(sub => { %>
+                                        <option value="<%= sub %>"><%= sub %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                        </div>
+
+                        <% if (studentPyqs.length === 0) { %>
+                            <p class="no-data-msg">No questions have been uploaded for your branch and semester yet.</p>
+                        <% } else { %>
+                            <table>
+                                <tr>
+                                    <th style="width: 70px; text-align: center;">Done?</th>
+                                    <th>Question / PYQ Title</th>
+                                    <th>Subject</th>
+                                    <th>Download / View</th>
+                                    <th>Status</th>
+                                </tr>
+                                <% studentPyqs.forEach(p => { %>
+                                    <tr class="student-pyq-row" data-subject="<%= p.subject.toLowerCase() %>">
+                                        <td style="text-align: center;">
+                                            <input type="checkbox" id="chk_pyq_<%= p.id %>" <%= p.is_completed ? 'checked' : '' %> 
+                                                   onchange="togglePyqProgress('<%= p.id %>', this)" 
+                                                   style="width: 20px; height: 20px; cursor: pointer; accent-color: #16a34a;"
+                                                   title="Mark as done / Undo">
+                                        </td>
+                                        <td><strong><%= p.title %></strong></td>
+                                        <td><span class="badge"><%= p.subject %></span></td>
+                                        <td>
+                                            <a href="<%= p.file_url %>" target="_blank" style="text-decoration: none;">
+                                                <button type="button" class="btn-blue" style="padding: 5px 12px; font-size: 12px;">
+                                                    <i class="fa-solid fa-download"></i> View / Download
+                                                </button>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <% if (p.is_completed) { %>
+                                                <span id="status_pyq_<%= p.id %>" class="badge" style="background: #16a34a; color: white;">Completed</span>
+                                            <% } else { %>
+                                                <span id="status_pyq_<%= p.id %>" class="badge" style="background: #94a3b8; color: white;">Pending</span>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </table>
+                            <p id="noSubjectPyqMsg" class="no-data-msg hidden" style="text-align: center; margin-top: 15px;">Selected subject ke liye koi question nahi mila.</p>
+                        <% } %>
+                    </section>
+
+                    <!-- STUDENT VIEW: CHAT & LIVE POLLS (INSTANT VOTE WITHOUT SUBMIT BUTTON) -->
+                    <section id="student_chat" class="hidden">
+                        <h2><i class="fa-solid fa-comments"></i> Class Chat & Live Polls</h2>
+                        <% if (!studentInfo || !studentInfo.branch || !studentInfo.semester) { %>
+                            <p class="no-data-msg">Your student profile is incomplete. A valid branch and semester are required to access the chat feature.</p>
+                        <% } else { %>
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">
+                                💬 <strong>Active Room:</strong> <%= studentInfo.branch %> (Semester <%= studentInfo.semester %>) — 
+                                <small style="color: #64748b;">(Chat auto-deletes in 24h, Polls in 48h)</small>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <!-- Polls Box for Student -->
+                                <div>
+                                    <h3 style="margin-top: 0; color: #1e3a8a;"><i class="fa-solid fa-square-poll-horizontal"></i> Active Polls</h3>
+                                    <div id="studentPollsList" style="max-height: 500px; overflow-y: auto;">
+                                        <p style="color: #64748b; font-style: italic;">Loading polls...</p>
+                                    </div>
+                                </div>
+
+                                <!-- Chat Box for Student -->
+                                <div>
+                                    <h3 style="margin-top: 0; color: #1e3a8a;"><i class="fa-solid fa-message"></i> Class Conversation</h3>
+                                    <div class="chat-container">
+                                        <div class="chat-messages" id="studentChatMessages">
+                                            <!-- Messages loaded dynamically -->
+                                        </div>
+                                        <div class="chat-input-bar">
+                                            <input id="studentMsgInput" placeholder="Type a message..." style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;" onkeypress="handleStudentChatKey(event)">
+                                            <button type="button" class="btn-blue" onclick="sendStudentMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
                     </section>
 
                     <% } %>
@@ -563,66 +957,846 @@
         </main>
     </div>
 
-    <!-- EDIT EXAM MODAL -->
+    <!-- INSPECT VOTERS MODAL (ADMIN ONLY) -->
+    <div id="inspectVotersModal" class="modal hidden">
+        <div class="modal-content" style="width: 90%; max-width: 750px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0;"><i class="fa-solid fa-users-viewfinder"></i> Voter Inspection: <span id="inspectModalQuestion" style="font-size: 15px; color: #1e3a8a;"></span></h2>
+                <button type="button" class="btn-red" style="padding: 4px 10px; font-size: 12px;" onclick="closeInspectVotersModal()">✕ Close</button>
+            </div>
+            
+            <div id="inspectVotersLoading" style="text-align: center; padding: 20px; font-weight: bold; color: #1e3a8a;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading voters...
+            </div>
+
+            <div id="inspectVotersContent" class="hidden">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Reg No</th>
+                            <th>Student Name</th>
+                            <th>Chosen Option(s)</th>
+                            <th>Voted At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inspectVotersTableBody">
+                    </tbody>
+                </table>
+                <p id="inspectVotersNoData" class="no-data-msg hidden" style="text-align: center; margin-top: 15px;">Kisi student ne abhi tak vote nahi diya hai.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW MARKS MODAL (ADMIN) -->
+    <div id="viewMarksModal" class="modal hidden">
+        <div class="modal-content" style="width: 90%; max-width: 950px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0;"><i class="fa-solid fa-square-poll-vertical"></i> Uploaded Marks - <span id="viewMarksExamTitle"></span></h2>
+                <button type="button" class="btn-red" style="padding: 4px 10px; font-size: 12px;" onclick="closeViewMarksModal()">✕ Close</button>
+            </div>
+            
+            <div id="viewMarksLoading" style="text-align: center; padding: 20px; font-weight: bold; color: #1e3a8a;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading marks data...
+            </div>
+
+            <div id="viewMarksContent" class="hidden">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Reg No</th>
+                            <th>Student Name</th>
+                            <th>Branch & Sem</th>
+                            <th>Per Question Breakdown</th>
+                            <th>Total Marks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewMarksTableBody">
+                    </tbody>
+                </table>
+                <p id="viewMarksNoData" class="no-data-msg hidden" style="text-align: center; margin-top: 15px;">Abhi tak is exam ke liye koi marks upload nahi hue hain.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPLOAD PAPER MODAL -->
+    <div id="uploadPaperModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px;">
+            <h2><i class="fa-solid fa-file-arrow-up"></i> Upload Question Paper</h2>
+            <p style="font-size: 13px; color: #475569;" id="uploadPaperExamName"></p>
+            <form id="uploadPaperForm" action="" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                <input type="file" name="paper_file" accept=".pdf, .png, .jpg, .jpeg, .docx" required>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button type="submit" class="btn-green" style="flex: 1;">Upload</button>
+                    <button type="button" class="btn-red" style="flex: 1;" onclick="closeUploadPaperModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- UPLOAD MARKS MODAL -->
+    <div id="uploadMarksModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <h2><i class="fa-solid fa-file-excel" style="color: #16a34a;"></i> Upload Student Marks (Excel)</h2>
+            <p style="font-size: 13px; color: #475569;" id="uploadMarksExamName"></p>
+            <form id="uploadMarksForm" action="" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                <input type="file" name="marks_excel" accept=".xlsx, .xls" required>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; color: #334155; line-height: 1.4;">
+                    💡 <strong>Excel Header Requirement:</strong><br>
+                    Seat Allotment export format (<code>Reg No</code>, <code>Student Name</code>, etc.) ke aage <code>Total Marks</code> aur questions ke columns (<code>Q1</code>, <code>Q2</code>, <code>Q3</code>... jitne bhi questions ho) add karein. Marks ka sum automatically calculate ho jayega!
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button type="submit" class="btn-green" style="flex: 1;">Upload Marks</button>
+                    <button type="button" class="btn-red" style="flex: 1;" onclick="closeUploadMarksModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SAMPLE EXCEL FORMAT POPUP MODAL (STUDENTS UPLOAD) -->
+    <div id="sampleExcelModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 520px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0; font-size: 18px;"><i class="fa-solid fa-file-excel" style="color: #16a34a;"></i> Excel Format Structure</h2>
+                <button type="button" class="btn-red" style="padding: 4px 10px; font-size: 12px;" onclick="closeSampleExcelModal()">✕</button>
+            </div>
+            
+            <p style="font-size: 13px; color: #475569; margin-bottom: 12px; line-height: 1.5;">
+                Ensure the Excel <strong>header row</strong> matches these exact names:
+            </p>
+
+            <div style="overflow-x: auto; border: 2px solid #cbd5e1; border-radius: 6px; background: #ffffff; margin-bottom: 15px;">
+                <table style="margin: 0; width: 100%; border-collapse: collapse; text-align: center;">
+                    <thead>
+                        <tr style="background-color: #f1f5f9; color: #1e3a8a;">
+                            <th style="border: 1px solid #cbd5e1; padding: 10px; font-size: 13px;">reg_no</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 10px; font-size: 13px;">name</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 10px; font-size: 13px;">branch</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 10px; font-size: 13px;">semester</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="border: 1px solid #e2e8f0; padding: 10px; font-size: 12px; color: #94a3b8; font-style: italic;">1211825035</td>
+                            <td style="border: 1px solid #e2e8f0; padding: 10px; font-size: 12px; color: #94a3b8; font-style: italic;">Shivam Kumar</td>
+                            <td style="border: 1px solid #e2e8f0; padding: 10px; font-size: 12px; color: #94a3b8; font-style: italic;">CSE</td>
+                            <td style="border: 1px solid #e2e8f0; padding: 10px; font-size: 12px; color: #94a3b8; font-style: italic;">3</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: #e0f2fe; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px; font-size: 12px; color: #0369a1; margin-bottom: 15px;">
+                <strong>Note:</strong> Enter all student details under the header row and upload the file with a <strong>.xlsx</strong> or <strong>.xls</strong> extension.
+            </div>
+
+            <div style="text-align: right;">
+                <button type="button" class="btn-blue" style="padding: 6px 20px;" onclick="closeSampleExcelModal()">Close Preview</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAPHICAL SEAT SELECTION MODAL -->
+    <div id="roomLayoutModal" class="modal hidden">
+        <div class="modal-content" style="width: 92%; max-width: 1100px; max-height: 90vh; overflow-y: auto;">
+            <form id="roomSeatsForm" action="" method="POST" onsubmit="prepareSeatColorsSubmission()">
+                <input type="hidden" name="seat_colors_json" id="seatColorsJsonInput">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;"><i class="fa-solid fa-chair"></i> Room <span id="modalRoomNo"></span> Graphical Seat Layout</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn-green"><i class="fa-solid fa-floppy-disk"></i> Save Layout</button>
+                        <button type="button" class="btn-red" onclick="closeRoomLayoutModal()">Cancel</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 12px; align-items: center; background: #e2e8f0; padding: 10px 15px; border-radius: 8px; flex-wrap: wrap;">
+                    <span style="font-weight: bold; font-size: 13px; color: #0f172a;">🎨 Active Brush Color:</span>
+                    
+                    <button type="button" id="palette_color1" class="palette-btn palette-active" style="background: #2563eb; color: white;" onclick="setActivePalette('color1')">
+                        🔵 Color 1 (Subject A)
+                    </button>
+                    
+                    <button type="button" id="palette_color2" class="palette-btn" style="background: #dc2626; color: white;" onclick="setActivePalette('color2')">
+                        🔴 Color 2 (Subject B)
+                    </button>
+
+                    <button type="button" id="palette_disabled" class="palette-btn" style="background: #94a3b8; color: white;" onclick="setActivePalette('disabled')">
+                        🚫 Disable / Clear Seat
+                    </button>
+                </div>
+
+                <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+                    Select a Brush Color above and click on any seat, column, or bench to paint it with Color 1 or Color 2 for multi-subject exams.
+                </p>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 6px;">
+                    <button type="button" class="btn-blue" style="padding: 5px 10px; font-size: 11px;" onclick="paintAllSeats('color1')">Paint All Color 1 (Blue)</button>
+                    <button type="button" class="btn-red" style="padding: 5px 10px; font-size: 11px;" onclick="paintAllSeats('color2')">Paint All Color 2 (Red)</button>
+                    <button type="button" class="btn-yellow" style="padding: 5px 10px; font-size: 11px;" onclick="paintAllSeats('disabled')">Disable All Seats</button>
+                    <span id="selectedCountBadge" class="badge" style="font-size: 12px; margin-left: auto;">0 Seats Configured</span>
+                </div>
+
+                <div style="background: #1e293b; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; letter-spacing: 1px; font-size: 13px;">
+                    📺 BLACKBOARD / TEACHER DESK (FRONT)
+                </div>
+
+                <div id="seatsGridContainer" style="display: flex; gap: 15px; justify-content: flex-start; align-items: flex-start; overflow-x: auto; padding: 15px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; white-space: nowrap;">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- COMPACT & SCROLLABLE EDIT EXAM MODAL -->
     <div id="editExamModal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="max-height: 85vh; overflow-y: auto; max-width: 550px;">
             <h2><i class="fa-solid fa-file-pen"></i> Edit Exam Details</h2>
-            <form id="editExamForm" action="" method="POST" class="modal-form">
+            <form id="editExamForm" action="" method="POST" class="modal-form" style="display: flex; flex-direction: column; gap: 12px;">
                 <div>
-                    <label>Subject Name:</label>
-                    <input id="editSubject" name="subject" required>
+                    <label style="font-weight: bold; font-size: 12px;">Subject Name:</label>
+                    <input id="editSubject" name="subject" required style="width: 100%; margin-top: 2px;">
                 </div>
-                <div>
-                    <label>Branch:</label>
-                    <select id="editBranch" name="branch" required class="select-input">
-                        <option value="CSE">CSE</option>
-                        <option value="ME">ME</option>
-                        <option value="AE">AE</option>
-                        <option value="CE">CE</option>
-                        <option value="EE">EE</option>
-                        <option value="ECE">ECE</option>
-                    </select>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Branch:</label>
+                        <select id="editBranch" name="branch" required class="select-input" style="width: 100%; margin-top: 2px;">
+                            <option value="CSE">CSE</option>
+                            <option value="ME">ME</option>
+                            <option value="AE">AE</option>
+                            <option value="CE">CE</option>
+                            <option value="EE">EE</option>
+                            <option value="ECE">ECE</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Semester:</label>
+                        <select id="editSemester" name="semester" required class="select-input" style="width: 100%; margin-top: 2px;">
+                            <option value="1">1st</option>
+                            <option value="2">2nd</option>
+                            <option value="3">3rd</option>
+                            <option value="4">4th</option>
+                            <option value="5">5th</option>
+                            <option value="6">6th</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label>Semester:</label>
-                    <select id="editSemester" name="semester" required class="select-input">
-                        <option value="1">1st</option>
-                        <option value="2">2nd</option>
-                        <option value="3">3rd</option>
-                        <option value="4">4th</option>
-                        <option value="5">5th</option>
-                        <option value="6">6th</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Room Number:</label>
-                    <select id="editRoomId" name="room_id" required class="select-input">
-                        <% rooms.forEach(r=> { %>
-                            <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)</option>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Room Number:</label>
+                        <select id="editRoomId" name="room_id" required class="select-input" style="width: 100%; margin-top: 2px;">
+                            <% rooms.forEach(r=> { %>
+                                <option value="<%= r.id %>">Room <%= r.room_no %> (Capacity: <%= r.capacity %>)</option>
                             <% }) %>
-                    </select>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Seat Color Group:</label>
+                        <select id="editSeatColor" name="seat_color" required class="select-input" style="width: 100%; margin-top: 2px;">
+                            <option value="color1">🔵 Color 1 (Blue Seats)</option>
+                            <option value="color2">🔴 Color 2 (Red Seats)</option>
+                        </select>
+                    </div>
                 </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Starting Reg No (Optional):</label>
+                        <input id="editStartRegNo" name="start_reg_no" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Stopping Reg No (Optional):</label>
+                        <input id="editStopRegNo" name="stop_reg_no" placeholder="e.g. 121XXXXXXX" style="width: 100%; margin-top: 2px;">
+                    </div>
+                </div>
+
                 <div>
-                    <label>Exam Date:</label>
-                    <input id="editExamDate" name="exam_date" type="date" required>
+                    <label style="font-weight: bold; font-size: 12px;">Exam Date:</label>
+                    <input id="editExamDate" name="exam_date" type="date" required style="width: 100%; margin-top: 2px;">
                 </div>
-                <div>
-                    <label>Start Time:</label>
-                    <input id="editStartTime" name="start_time" type="time" required>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">Start Time:</label>
+                        <input id="editStartTime" name="start_time" type="time" required style="width: 100%; margin-top: 2px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 12px;">End Time:</label>
+                        <input id="editEndTime" name="end_time" type="time" required style="width: 100%; margin-top: 2px;">
+                    </div>
                 </div>
-                <div>
-                    <label>End Time:</label>
-                    <input id="editEndTime" name="end_time" type="time" required>
-                </div>
-                <div class="modal-buttons">
-                    <button type="submit" class="btn-green">Save Changes</button>
-                    <button type="button" class="btn-red" onclick="closeEditExamModal()">Cancel</button>
+
+                <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 8px;">
+                    <button type="submit" class="btn-green" style="flex: 1;">Save Changes</button>
+                    <button type="button" class="btn-red" style="flex: 1;" onclick="closeEditExamModal()">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        let currentBrushColor = 'color1';
+        let roomSeatState = {};
+        let activeAdminChatBranch = '';
+        let activeAdminChatSemester = '';
+        let chatPollInterval = null;
+
+        // --- ADMIN CHAT & POLL FUNCTIONS ---
+
+        function initAdminChatRoom() {
+            activeAdminChatBranch = document.getElementById('adminChatBranch').value;
+            activeAdminChatSemester = document.getElementById('adminChatSemester').value;
+
+            if (activeAdminChatBranch && activeAdminChatSemester) {
+                document.getElementById('adminChatStatus').innerText = `Connected to ${activeAdminChatBranch} - Semester ${activeAdminChatSemester}`;
+                document.getElementById('adminChatStatus').style.color = '#16a34a';
+                document.getElementById('adminChatWrapper').classList.remove('hidden');
+
+                loadAdminChatData();
+                if (chatPollInterval) clearInterval(chatPollInterval);
+                chatPollInterval = setInterval(loadAdminChatData, 3000);
+            } else {
+                document.getElementById('adminChatWrapper').classList.add('hidden');
+                document.getElementById('adminChatStatus').innerText = 'Select the Branch and Semester first.';
+                document.getElementById('adminChatStatus').style.color = '#64748b';
+                if (chatPollInterval) clearInterval(chatPollInterval);
+            }
+        }
+
+        async function loadAdminChatData() {
+            if (!activeAdminChatBranch || !activeAdminChatSemester) return;
+
+            try {
+                const res = await fetch(`/api/chat/${activeAdminChatBranch}/${activeAdminChatSemester}`);
+                const data = await res.json();
+                if (data.success) {
+                    renderAdminMessages(data.messages);
+                    renderAdminPolls(data.polls);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderAdminMessages(messages) {
+            const container = document.getElementById('adminChatMessages');
+            const atBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+
+            container.innerHTML = '';
+            if (messages.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #94a3b8; font-style: italic;">No messages yet. (Auto-deletes in 24 hours)</p>';
+                return;
+            }
+
+            messages.forEach(m => {
+                const div = document.createElement('div');
+                div.className = m.sender_role === 'admin' ? 'chat-bubble chat-bubble-admin' : 'chat-bubble chat-bubble-student';
+                
+                // Show Student Name AND Registration Number
+                const senderTitle = m.sender_role === 'student'
+                    ? `${m.sender_name}`
+                    : `${m.sender_name} <span class="badge" style="font-size:9px; background:#1e40af; color:white;">ADMIN</span>`;
+
+                div.innerHTML = `
+                    <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px; color: ${m.sender_role === 'admin' ? '#1e40af' : '#0f172a'};">
+                        ${senderTitle}
+                        <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 6px;">${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div>${m.message}</div>
+                `;
+                container.appendChild(div);
+            });
+
+            if (atBottom) container.scrollTop = container.scrollHeight;
+        }
+
+        function renderAdminPolls(polls) {
+            const container = document.getElementById('adminPollsList');
+            container.innerHTML = '';
+
+            if (polls.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; font-style: italic;">No active polls. (Auto-deletes in 48 hours)</p>';
+                return;
+            }
+
+            polls.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'poll-card';
+
+                let optionsHtml = '';
+                p.options.forEach(opt => {
+                    const pct = p.total_voters > 0 ? Math.round((opt.votes_count / p.total_voters) * 100) : 0;
+                    optionsHtml += `
+                        <div class="poll-option-row">
+                            <span style="font-weight: bold; font-size: 13px; min-width: 100px;">${opt.text}</span>
+                            <div class="poll-progress-bg">
+                                <div class="poll-progress-fill" style="width: ${pct}%;"></div>
+                            </div>
+                            <span style="font-size: 12px; font-weight: bold; color: #1e3a8a;">${opt.votes_count} votes (${pct}%)</span>
+                        </div>
+                    `;
+                });
+
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                        <h4 style="margin: 0; color: #0f172a; font-size: 14px;">${p.question}</h4>
+                        <span class="badge" style="font-size: 10px; background: ${p.is_multiple ? '#9333ea' : '#2563eb'}; color: white;">
+                            ${p.is_multiple ? 'Multi-Choice' : 'Single-Choice'}
+                        </span>
+                    </div>
+                    <small style="color: #64748b;">Total Voters: <strong>${p.total_voters}</strong> • Expires in 48h</small>
+                    <div style="margin-top: 10px;">${optionsHtml}</div>
+                    <div style="text-align: right; margin-top: 10px;">
+                        <button type="button" class="btn-blue" style="font-size: 11px; padding: 4px 10px;" onclick="openInspectVotersModal('${p.id}')">
+                            <i class="fa-solid fa-users-viewfinder"></i> Inspect Voters
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function sendAdminMessage() {
+            const input = document.getElementById('adminMsgInput');
+            const msg = input.value.trim();
+            if (!msg || !activeAdminChatBranch || !activeAdminChatSemester) return;
+
+            try {
+                const res = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        branch: activeAdminChatBranch,
+                        semester: activeAdminChatSemester,
+                        message: msg
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    loadAdminChatData();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function handleAdminChatKey(e) {
+            if (e.key === 'Enter') sendAdminMessage();
+        }
+
+        function addPollOptionInput() {
+            const container = document.getElementById('pollOptionsContainer');
+            const count = container.querySelectorAll('input').length + 1;
+            const input = document.createElement('input');
+            input.className = 'poll-option-input';
+            input.placeholder = `Option ${count}`;
+            input.style = "padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;";
+            container.appendChild(input);
+        }
+
+        async function submitCreatePoll() {
+            const question = document.getElementById('newPollQuestion').value.trim();
+            const optionInputs = document.querySelectorAll('.poll-option-input');
+            const options = Array.from(optionInputs).map(i => i.value.trim()).filter(v => v.length > 0);
+            const isMultiple = document.getElementById('pollIsMultiple').checked;
+
+            if (!question) {
+                alert('Please enter a poll question.');
+                return;
+            }
+            if (options.length < 2) {
+                alert('Please enter at least 2 valid options.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/poll/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        branch: activeAdminChatBranch,
+                        semester: activeAdminChatSemester,
+                        question,
+                        options,
+                        is_multiple: isMultiple
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('newPollQuestion').value = '';
+                    optionInputs.forEach(i => i.value = '');
+                    document.getElementById('pollIsMultiple').checked = false;
+                    loadAdminChatData();
+                } else {
+                    alert(data.message || 'Error creating poll');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- INSPECT VOTERS MODAL ---
+
+        async function openInspectVotersModal(pollId) {
+            document.getElementById('inspectVotersModal').classList.remove('hidden');
+            document.getElementById('inspectVotersLoading').classList.remove('hidden');
+            document.getElementById('inspectVotersContent').classList.add('hidden');
+            document.getElementById('inspectVotersNoData').classList.add('hidden');
+            document.getElementById('inspectVotersTableBody').innerHTML = '';
+
+            try {
+                const res = await fetch('/api/poll/voters/' + pollId);
+                const data = await res.json();
+                document.getElementById('inspectVotersLoading').classList.add('hidden');
+                document.getElementById('inspectVotersContent').classList.remove('hidden');
+
+                if (data.success) {
+                    document.getElementById('inspectModalQuestion').innerText = `"${data.question}" (${data.is_multiple ? 'Multi-Choice' : 'Single-Choice'})`;
+
+                    if (data.voters && data.voters.length > 0) {
+                        const tbody = document.getElementById('inspectVotersTableBody');
+                        data.voters.forEach(v => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td><strong>${v.reg_no}</strong></td>
+                                <td>${v.name}</td>
+                                <td>
+                                    ${v.chosen_options.map(opt => `<span class="badge" style="background:#2563eb; color:white; margin: 2px;">${opt}</span>`).join(' ')}
+                                </td>
+                                <td>${new Date(v.voted_at).toLocaleString()}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        document.getElementById('inspectVotersNoData').classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('inspectVotersLoading').innerHTML = '<span style="color:red;">Error loading voter details.</span>';
+            }
+        }
+
+        function closeInspectVotersModal() {
+            document.getElementById('inspectVotersModal').classList.add('hidden');
+        }
+
+        // --- STUDENT CHAT & POLL FUNCTIONS ---
+
+        let studentBranch = '<%= studentInfo ? studentInfo.branch : "" %>';
+        let studentSemester = '<%= studentInfo ? studentInfo.semester : "" %>';
+
+        function initStudentChat() {
+            if (!studentBranch || !studentSemester) return;
+            loadStudentChatData();
+            if (chatPollInterval) clearInterval(chatPollInterval);
+            chatPollInterval = setInterval(loadStudentChatData, 3000);
+        }
+
+        async function loadStudentChatData() {
+            if (!studentBranch || !studentSemester) return;
+            try {
+                const res = await fetch(`/api/chat/${studentBranch}/${studentSemester}`);
+                const data = await res.json();
+                if (data.success) {
+                    renderStudentMessages(data.messages);
+                    renderStudentPolls(data.polls);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderStudentMessages(messages) {
+            const container = document.getElementById('studentChatMessages');
+            if (!container) return;
+            const atBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+
+            container.innerHTML = '';
+            if (messages.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #94a3b8; font-style: italic;">No messages yet. (Auto-deletes in 24 hours)</p>';
+                return;
+            }
+
+            const currentUsername = '<%= user.username %>';
+
+            messages.forEach(m => {
+                const div = document.createElement('div');
+                const isMe = m.sender_username === currentUsername;
+                div.className = isMe ? 'chat-bubble chat-bubble-me' : (m.sender_role === 'admin' ? 'chat-bubble chat-bubble-admin' : 'chat-bubble chat-bubble-student');
+                
+                // Show Student Name AND Registration Number
+                const senderTitle = m.sender_role === 'student'
+                    ? `${m.sender_name}`
+                    : `${m.sender_name} <span class="badge" style="font-size:9px; background:#1e40af; color:white;">ADMIN</span>`;
+
+                div.innerHTML = `
+                    <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px; color: ${isMe ? '#dbeafe' : (m.sender_role === 'admin' ? '#1e40af' : '#0f172a')};">
+                        ${senderTitle}
+                        <span style="font-weight: normal; font-size: 10px; opacity: 0.8; margin-left: 6px;">${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div>${m.message}</div>
+                `;
+                container.appendChild(div);
+            });
+
+            if (atBottom) container.scrollTop = container.scrollHeight;
+        }
+
+        function renderStudentPolls(polls) {
+            const container = document.getElementById('studentPollsList');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (polls.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; font-style: italic;">No active polls. (Auto-deletes in 48 hours)</p>';
+                return;
+            }
+
+            polls.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'poll-card';
+
+                let optionsHtml = '';
+
+                p.options.forEach(opt => {
+                    const isSelected = p.has_voted && p.user_votes.includes(opt.option_id);
+                    const pct = p.total_voters > 0 ? Math.round((opt.votes_count / p.total_voters) * 100) : 0;
+
+                    if (p.has_voted) {
+                        // Locked view: show vote counts and percentages (Cannot change)
+                        optionsHtml += `
+                            <div class="poll-option-row" style="${isSelected ? 'border-color: #16a34a; background: #f0fdf4;' : ''}">
+                                <span style="font-size: 13px; font-weight: bold; flex: 1;">
+                                    ${isSelected ? '✓ ' : ''}${opt.text}
+                                </span>
+                                <div class="poll-progress-bg" style="max-width: 140px;">
+                                    <div class="poll-progress-fill" style="width: ${pct}%; background: ${isSelected ? '#16a34a' : '#2563eb'};"></div>
+                                </div>
+                                <span style="font-size: 12px; font-weight: bold; color: #1e3a8a;">${opt.votes_count} votes (${pct}%)</span>
+                            </div>
+                        `;
+                    } else {
+                        // Instant Vote on Click: Selecting option immediately submits it!
+                        optionsHtml += `
+                            <div class="poll-option-row poll-option-interactive" onclick="submitStudentInstantVote('${p.id}', ${opt.option_id})">
+                                <span style="font-size: 13px; font-weight: bold; color: #1e293b;"><i class="fa-regular fa-circle" style="color: #2563eb; margin-right: 8px;"></i> ${opt.text}</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                let footerHtml = '';
+                if (p.has_voted) {
+                    footerHtml = `<div style="margin-top: 8px; font-size: 12px; color: #16a34a; font-weight: bold;"><i class="fa-solid fa-lock"></i> Your vote has been recorded. (Locked)</div>`;
+                } else {
+                    footerHtml = `<div style="margin-top: 8px; font-size: 12px; color: #64748b; font-style: italic;">💡 Click any option to submit your vote instantly.</div>`;
+                }
+
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                        <h4 style="margin: 0; color: #0f172a; font-size: 14px;">${p.question}</h4>
+                        <span class="badge" style="font-size: 10px; background: ${p.is_multiple ? '#9333ea' : '#2563eb'}; color: white;">
+                            ${p.is_multiple ? 'Multi-Choice' : 'Single-Choice'}
+                        </span>
+                    </div>
+                    <div style="margin-top: 10px;">${optionsHtml}</div>
+                    ${footerHtml}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // INSTANT VOTE ON CLICK (NO SUBMIT BUTTON REQUIRED)
+        async function submitStudentInstantVote(pollId, optionId) {
+            try {
+                const res = await fetch('/api/poll/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ poll_id: pollId, selected_options: [optionId] })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadStudentChatData();
+                } else {
+                    alert(data.message || 'Error submitting vote');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function sendStudentMessage() {
+            const input = document.getElementById('studentMsgInput');
+            const msg = input.value.trim();
+            if (!msg || !studentBranch || !studentSemester) return;
+
+            try {
+                const res = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        branch: studentBranch,
+                        semester: studentSemester,
+                        message: msg
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    loadStudentChatData();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function handleStudentChatKey(e) {
+            if (e.key === 'Enter') sendStudentMessage();
+        }
+
+        // --- PYQ & MARKS FUNCTIONS ---
+
+        async function togglePyqProgress(pyqId, checkboxElem) {
+            const statusSpan = document.getElementById('status_pyq_' + pyqId);
+            const prevChecked = !checkboxElem.checked;
+
+            try {
+                const res = await fetch('/toggle_pyq_status/' + pyqId, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    checkboxElem.checked = data.is_completed;
+                    if (statusSpan) {
+                        if (data.is_completed) {
+                            statusSpan.className = 'badge';
+                            statusSpan.style.background = '#16a34a';
+                            statusSpan.style.color = '#ffffff';
+                            statusSpan.innerText = 'Completed';
+                        } else {
+                            statusSpan.className = 'badge';
+                            statusSpan.style.background = '#94a3b8';
+                            statusSpan.style.color = '#ffffff';
+                            statusSpan.innerText = 'Pending';
+                        }
+                    }
+                } else {
+                    checkboxElem.checked = prevChecked;
+                }
+            } catch (err) {
+                console.error(err);
+                checkboxElem.checked = prevChecked;
+            }
+        }
+
+        function filterStudentPyqs() {
+            const filterVal = document.getElementById('studentSubjectFilter').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.student-pyq-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const sub = (row.getAttribute('data-subject') || '').toLowerCase().trim();
+                if (!filterVal || sub === filterVal) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const noDataMsg = document.getElementById('noSubjectPyqMsg');
+            if (noDataMsg) {
+                if (visibleCount === 0) {
+                    noDataMsg.classList.remove('hidden');
+                } else {
+                    noDataMsg.classList.add('hidden');
+                }
+            }
+        }
+
+        async function openViewMarksModal(examId, subject) {
+            document.getElementById('viewMarksExamTitle').innerText = subject;
+            document.getElementById('viewMarksLoading').classList.remove('hidden');
+            document.getElementById('viewMarksContent').classList.add('hidden');
+            document.getElementById('viewMarksTableBody').innerHTML = '';
+            document.getElementById('viewMarksNoData').classList.add('hidden');
+            document.getElementById('viewMarksModal').classList.remove('hidden');
+
+            try {
+                const res = await fetch('/get_exam_marks/' + examId);
+                const data = await res.json();
+                document.getElementById('viewMarksLoading').classList.add('hidden');
+                document.getElementById('viewMarksContent').classList.remove('hidden');
+
+                if (data.success && data.marks && data.marks.length > 0) {
+                    const tbody = document.getElementById('viewMarksTableBody');
+                    data.marks.forEach(m => {
+                        let qHtml = '';
+                        if (m.question_wise_marks && Object.keys(m.question_wise_marks).length > 0) {
+                            qHtml = '<div style="display: flex; flex-wrap: wrap; gap: 4px;">';
+                            for (const [q, score] of Object.entries(m.question_wise_marks)) {
+                                qHtml += `<span style="background: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #cbd5e1;">${q}: ${score}</span>`;
+                            }
+                            qHtml += '</div>';
+                        } else {
+                            qHtml = '<span style="color: #94a3b8; font-style: italic;">No question breakdown</span>';
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${m.reg_no}</strong></td>
+                            <td>${m.name}</td>
+                            <td><span class="badge">${m.branch || 'N/A'}</span> Sem ${m.semester || 'N/A'}</td>
+                            <td>${qHtml}</td>
+                            <td>
+                                <span class="badge" style="background: #16a34a; color: white; font-size: 12px; padding: 5px 10px;">
+                                    ${m.marks_obtained} / ${m.total_marks}
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    document.getElementById('viewMarksNoData').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('viewMarksLoading').innerHTML = '<span style="color: red;">Marks load karne me error aayi.</span>';
+            }
+        }
+
+        function closeViewMarksModal() {
+            document.getElementById('viewMarksModal').classList.add('hidden');
+        }
+
+        function openUploadPaperModal(examId, subject) {
+            document.getElementById('uploadPaperForm').action = '/upload_paper/' + examId;
+            document.getElementById('uploadPaperExamName').innerText = 'Exam: ' + subject;
+            document.getElementById('uploadPaperModal').classList.remove('hidden');
+        }
+
+        function closeUploadPaperModal() {
+            document.getElementById('uploadPaperModal').classList.add('hidden');
+        }
+
+        function openUploadMarksModal(examId, subject) {
+            document.getElementById('uploadMarksForm').action = '/upload_marks/' + examId;
+            document.getElementById('uploadMarksExamName').innerText = 'Exam: ' + subject;
+            document.getElementById('uploadMarksModal').classList.remove('hidden');
+        }
+
+        function closeUploadMarksModal() {
+            document.getElementById('uploadMarksModal').classList.add('hidden');
+        }
+
+        function openSampleExcelModal() {
+            document.getElementById('sampleExcelModal').classList.remove('hidden');
+        }
+
+        function closeSampleExcelModal() {
+            document.getElementById('sampleExcelModal').classList.add('hidden');
+        }
+
         function showSection(sectionName) {
             let sections = document.querySelectorAll("main section");
             sections.forEach(function (section) {
@@ -630,6 +1804,14 @@
             });
             const target = document.getElementById(sectionName);
             if (target) target.classList.remove("hidden");
+
+            if (sectionName === 'student_chat') {
+                initStudentChat();
+            } else if (sectionName === 'admin_chat') {
+                initAdminChatRoom();
+            } else {
+                if (chatPollInterval) clearInterval(chatPollInterval);
+            }
         }
 
         function handleBranchChange() {
@@ -658,12 +1840,34 @@
             }
         }
 
-        function openEditExamModal(id, subject, branch, semester, roomId, date, startTime, endTime) {
+        function toggleSecondaryExam(enable) {
+            const secBox = document.getElementById('secondaryExamBox');
+            const secInput = document.getElementById('secondExamEnabledInput');
+            const addBtn = document.getElementById('addSecondExamBtn');
+            const subj2 = document.getElementById('subject2Input');
+
+            if (enable) {
+                secBox.style.display = 'block';
+                secInput.value = 'true';
+                addBtn.style.display = 'none';
+                subj2.required = true;
+            } else {
+                secBox.style.display = 'none';
+                secInput.value = 'false';
+                addBtn.style.display = 'inline-block';
+                subj2.required = false;
+            }
+        }
+
+        function openEditExamModal(id, subject, branch, semester, roomId, seatColor, startRegNo, stopRegNo, date, startTime, endTime) {
             document.getElementById('editExamForm').action = '/edit_exam/' + id;
             document.getElementById('editSubject').value = subject;
             document.getElementById('editBranch').value = branch;
             document.getElementById('editSemester').value = semester;
             if (roomId) document.getElementById('editRoomId').value = roomId;
+            document.getElementById('editSeatColor').value = seatColor || 'color1';
+            document.getElementById('editStartRegNo').value = startRegNo || '';
+            document.getElementById('editStopRegNo').value = stopRegNo || '';
             document.getElementById('editExamDate').value = date;
             document.getElementById('editStartTime').value = startTime;
             document.getElementById('editEndTime').value = endTime;
@@ -672,6 +1876,225 @@
 
         function closeEditExamModal() {
             document.getElementById('editExamModal').classList.add('hidden');
+        }
+
+        function setActivePalette(color) {
+            currentBrushColor = color;
+            document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('palette-active'));
+            document.getElementById('palette_' + color).classList.add('palette-active');
+        }
+
+        function openRoomLayoutModal(roomId, roomNo, numCols, columnRowsJson, activeSeatsJson, seatColorsJson) {
+            document.getElementById('modalRoomNo').innerText = roomNo;
+            document.getElementById('roomSeatsForm').action = '/update_room_seats/' + roomId;
+
+            const columnRows = JSON.parse(columnRowsJson);
+            const activeSeats = JSON.parse(activeSeatsJson || '[]');
+            const seatColors = JSON.parse(seatColorsJson || '[]');
+            
+            roomSeatState = {};
+
+            if (seatColors && seatColors.length > 0) {
+                seatColors.forEach(sc => {
+                    roomSeatState[sc.seat_key] = sc.color;
+                });
+            } else {
+                for (let c = 1; c <= numCols; c++) {
+                    const rowsInCol = columnRows[c - 1] || 1;
+                    for (let r = 1; r <= rowsInCol; r++) {
+                        for (let s = 1; s <= 2; s++) {
+                            const sk = `C${c}-R${r}-S${s}`;
+                            if (activeSeats.length === 0 || activeSeats.includes(sk)) {
+                                roomSeatState[sk] = (s === 1 ? 'color1' : 'color2');
+                            } else {
+                                roomSeatState[sk] = 'disabled';
+                            }
+                        }
+                    }
+                }
+            }
+
+            const container = document.getElementById('seatsGridContainer');
+            container.innerHTML = '';
+
+            for (let c = 1; c <= numCols; c++) {
+                const rowsInCol = columnRows[c - 1] || 1;
+                
+                let colHtml = `<div class="column-box">`;
+                colHtml += `
+                    <div class="column-header" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%;">
+                        <span>Col ${c}</span>
+                        <div style="display: flex; gap: 3px; width: 100%;">
+                            <button type="button" class="btn-blue" style="padding: 2px 4px; font-size: 9px; flex: 1; text-align: center;" onclick="paintColumnSideSeats(${c}, 1)" title="Paint Left Side (S1) seats of Column ${c}">👈 S1</button>
+                            <button type="button" class="btn-blue" style="padding: 2px 4px; font-size: 9px; flex: 1; text-align: center;" onclick="paintColumnSideSeats(${c}, 2)" title="Paint Right Side (S2) seats of Column ${c}">👉 S2</button>
+                        </div>
+                        <button type="button" class="btn-yellow" style="padding: 2px 4px; font-size: 9px; width: 100%; text-align: center; margin-top: 2px;" onclick="paintColumnSeats(${c})" title="Paint ALL seats in Column ${c}">⚡ Both Sides</button>
+                    </div>
+                `;
+
+                for (let r = 1; r <= rowsInCol; r++) {
+                    colHtml += `<div class="bench-row">`;
+                    colHtml += `<button type="button" class="btn-yellow" style="padding: 2px 5px; font-size: 9px; line-height: 1.2; border-radius: 4px;" title="Paint Bench ${r}" onclick="paintBenchSeats(${c}, ${r})">R${r}</button>`;
+                    
+                    for (let s = 1; s <= 2; s++) {
+                        const seatKey = `C${c}-R${r}-S${s}`;
+                        const currentState = roomSeatState[seatKey] || (s === 1 ? 'color1' : 'color2');
+                        
+                        let cssClass = 'seat-color1';
+                        let isChecked = 'checked';
+                        if (currentState === 'color2') {
+                            cssClass = 'seat-color2';
+                        } else if (currentState === 'disabled') {
+                            cssClass = 'seat-disabled';
+                            isChecked = '';
+                        }
+
+                        colHtml += `
+                            <div class="seat-box ${cssClass}" id="box_${seatKey}" onclick="applyBrushToSeat('${seatKey}')" title="Column ${c}, Bench ${r}, Seat ${s}">
+                                <input type="checkbox" name="active_seats" value="${seatKey}" id="chk_${seatKey}" ${isChecked} style="display:none;">
+                                S${s}
+                            </div>
+                        `;
+                    }
+                    colHtml += `</div>`;
+                }
+
+                colHtml += `</div>`;
+                container.innerHTML += colHtml;
+            }
+
+            updateSelectedCount();
+            document.getElementById('roomLayoutModal').classList.remove('hidden');
+        }
+
+        function applyBrushToSeat(seatKey) {
+            roomSeatState[seatKey] = currentBrushColor;
+            renderSeatBoxUI(seatKey, currentBrushColor);
+            updateSelectedCount();
+        }
+
+        function renderSeatBoxUI(seatKey, colorState) {
+            const box = document.getElementById('box_' + seatKey);
+            const chk = document.getElementById('chk_' + seatKey);
+
+            box.classList.remove('seat-color1', 'seat-color2', 'seat-disabled');
+
+            if (colorState === 'color1') {
+                box.classList.add('seat-color1');
+                chk.checked = true;
+            } else if (colorState === 'color2') {
+                box.classList.add('seat-color2');
+                chk.checked = true;
+            } else {
+                box.classList.add('seat-disabled');
+                chk.checked = false;
+            }
+        }
+
+        function paintColumnSideSeats(colNum, side) {
+            for (let seatKey in roomSeatState) {
+                if (seatKey.startsWith(`C${colNum}-`) && seatKey.endsWith(`-S${side}`)) {
+                    roomSeatState[seatKey] = currentBrushColor;
+                    renderSeatBoxUI(seatKey, currentBrushColor);
+                }
+            }
+            updateSelectedCount();
+        }
+
+        function paintColumnSeats(colNum) {
+            for (let seatKey in roomSeatState) {
+                if (seatKey.startsWith(`C${colNum}-`)) {
+                    roomSeatState[seatKey] = currentBrushColor;
+                    renderSeatBoxUI(seatKey, currentBrushColor);
+                }
+            }
+            updateSelectedCount();
+        }
+
+        function paintBenchSeats(colNum, rowNum) {
+            const prefix = `C${colNum}-R${rowNum}-`;
+            for (let seatKey in roomSeatState) {
+                if (seatKey.startsWith(prefix)) {
+                    roomSeatState[seatKey] = currentBrushColor;
+                    renderSeatBoxUI(seatKey, currentBrushColor);
+                }
+            }
+            updateSelectedCount();
+        }
+
+        function paintAllSeats(targetColor) {
+            for (let seatKey in roomSeatState) {
+                roomSeatState[seatKey] = targetColor;
+                renderSeatBoxUI(seatKey, targetColor);
+            }
+            updateSelectedCount();
+        }
+
+        function prepareSeatColorsSubmission() {
+            const seatColorsArray = [];
+            for (let seatKey in roomSeatState) {
+                if (roomSeatState[seatKey] !== 'disabled') {
+                    seatColorsArray.push({
+                        seat_key: seatKey,
+                        color: roomSeatState[seatKey]
+                    });
+                }
+            }
+            document.getElementById('seatColorsJsonInput').value = JSON.stringify(seatColorsArray);
+        }
+
+        function updateSelectedCount() {
+            let c1Count = 0;
+            let c2Count = 0;
+            for (let k in roomSeatState) {
+                if (roomSeatState[k] === 'color1') c1Count++;
+                if (roomSeatState[k] === 'color2') c2Count++;
+            }
+            document.getElementById('selectedCountBadge').innerText = `🔵 Color 1: ${c1Count} Seats | 🔴 Color 2: ${c2Count} Seats`;
+        }
+
+        function closeRoomLayoutModal() {
+            document.getElementById('roomLayoutModal').classList.add('hidden');
+        }
+
+        function generateColumnRowInputs() {
+            const numCols = parseInt(document.getElementById('numColumnsInput').value, 10);
+            const container = document.getElementById('columnRowsContainer');
+            const summaryDiv = document.getElementById('roomSummary');
+
+            container.innerHTML = '';
+            summaryDiv.style.display = 'none';
+
+            if (!numCols || numCols <= 0) return;
+
+            let html = '<h4 style="margin-bottom: 4px; font-size: 13px; color: #1e3a8a;">Enter number of rows (benches) for each column:</h4>';
+            html += '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+
+            for (let i = 1; i <= numCols; i++) {
+                html += `
+                    <div style="background: #f1f5f9; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; flex: 1; min-width: 130px; max-width: 180px;">
+                        <label style="font-weight: bold; font-size: 12px; display: block; color: #334155;">Column ${i} Rows:</label>
+                        <input type="number" name="column_rows" min="1" placeholder="e.g. 10" required 
+                               style="width: 100%; margin-top: 4px; padding: 5px 8px; font-size: 13px;" oninput="updateRoomCapacitySummary()">
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateRoomCapacitySummary() {
+            const rowInputs = document.querySelectorAll('input[name="column_rows"]');
+            const summaryDiv = document.getElementById('roomSummary');
+            
+            let totalBenches = 0;
+            rowInputs.forEach(input => {
+                totalBenches += parseInt(input.value, 10) || 0;
+            });
+
+            const totalCapacity = totalBenches * 2;
+            summaryDiv.innerHTML = `💡 Total Benches: ${totalBenches} | Total Room Capacity: ${totalCapacity} Students (2 per bench)`;
+            summaryDiv.style.display = 'block';
         }
 
         document.addEventListener("DOMContentLoaded", function () {
