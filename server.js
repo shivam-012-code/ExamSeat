@@ -152,7 +152,7 @@ app.post('/api/otp/send-register', async (req, res) => {
     res.json({ success: true, message: `OTP is successfully send to your email (${cleanEmail}). Kindly check Inbox/Spam.` });
   } catch (err) {
     console.error('Send Register Email OTP Error:', err);
-    res.status(500).json({ success: false, message: 'Email bhejne me error aayi. Kripya check karein ki Gmail App Password sahi hai.' });
+    res.status(500).json({ success: false, message: 'Error in sending Email. Please ensure that you entered your Gmail App Password correct.' });
   }
 });
 
