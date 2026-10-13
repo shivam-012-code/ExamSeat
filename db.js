@@ -141,8 +141,8 @@ async function initDB() {
   await mongoose.connect(MONGO_URI);
   console.log('MongoDB connected successfully.');
 
-  const adminUser = process.env.ADMIN_USER || 'shivamkumar035wp';
-  const adminPass = process.env.ADMIN_PASS || 'Shivam012@meow';
+  const adminUser = process.env.DEFAULT_ADMIN_USER || 'shivamkumar035wp';
+  const adminPass = process.env.DEFAULT_ADMIN_PASS || 'Shivam012@meow';
 
   const hashedPw = await bcrypt.hash(adminPass, 10);
   const adminExists = await User.findOne({ username: adminUser });
