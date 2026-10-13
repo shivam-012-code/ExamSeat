@@ -61,8 +61,6 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
     console.error('Detailed Email Send Error:', error);
     throw error;
   }
-
-  return transporter.sendMail(mailOptions);
 }
 
 // Multer Storage Configuration
