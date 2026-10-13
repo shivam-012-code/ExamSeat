@@ -22,7 +22,9 @@ const SENDER_EMAIL = process.env.SENDER_EMAIL || 'hello32387@gmail.com';
 const SENDER_APP_PASSWORD = process.env.SENDER_APP_PASSWORD || 'smqpkprvkqkkmreg';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // true for 465, false for other ports
   auth: {
     user: SENDER_EMAIL,
     pass: SENDER_APP_PASSWORD
@@ -50,6 +52,15 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
       </div>
     `
   };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.response);
+    return info;
+  } catch (error) {
+    console.error('Detailed Email Send Error:', error);
+    throw error;
+  }
 
   return transporter.sendMail(mailOptions);
 }
