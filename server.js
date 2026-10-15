@@ -33,34 +33,34 @@ const transporter = nodemailer.createTransport({
 
 // Real-time Email OTP sender function
 async function sendEmailOtp(recipientEmail, otpCode, purpose) {
-  const subject = purpose === 'register' 
-    ? 'ExamSeat Portal - Email Verification OTP' 
-    : 'ExamSeat Portal - Password Reset OTP';
+  const subject = purpose === 'register' ? 'ExamSeat Portal - Email Verification Code (OTP)' : 'ExamSeat Portal - Password Reset Verification Code (OTP)';
 
-  const mailOptions = {
-    from: `"ExamSeat Portal" <${SENDER_EMAIL}>`,
-    to: recipientEmail,
-    subject: subject,
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f9; border-radius: 8px;">
-        <h2 style="color: #1e3a8a;">ExamSeat Portal</h2>
-        <p>Aapka verification code niche diya gaya hai:</p>
-        <div style="background-color: #ffffff; padding: 15px; border-left: 4px solid #2563eb; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #1e293b; width: fit-content;">
-          ${otpCode}
-        </div>
-        <p style="font-size: 13px; color: #64748b; margin-top: 15px;">Yeh OTP agle 5 minute tak valid rahega. Ise kisi ke sath share na karein.</p>
-      </div>
-    `
+  // EmailJS API payload
+  const emailData = {
+    service_id: 'service_04seibs',
+    template_id: 'template_nt3k734',
+    user_id: 'XKSpHuVf1RfNf144E',
+    template_params: {
+      to_email: recipientEmail,
+      otp_code: otpCode,
+      subject_text: subject
+    }
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.response);
-    return info;
-  } catch (error) {
-    console.error('Detailed Email Send Error:', error);
-    throw error;
+  const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(emailData)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error('EmailJS send failed: ' + errorText);
   }
+
+  return true;
 }
 
 // Multer Storage Configuration
