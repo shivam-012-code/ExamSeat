@@ -8,7 +8,6 @@ const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit-table');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
 const { 
   initDB, User, Student, Room, Exam, Seating, Mark, Pyq, PyqProgress,
   ChatMessage, Poll, PollVote, Otp 
@@ -16,17 +15,6 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// --- EMAIL TRANSPORTER CONFIGURATION ---
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for 465, false for other ports
-  auth: {
-    user: SENDER_EMAIL,
-    pass: SENDER_APP_PASSWORD
-  }
-});
 
 // Real-time Email OTP sender function
 async function sendEmailOtp(recipientEmail, otpCode, purpose) {
