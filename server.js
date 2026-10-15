@@ -37,9 +37,9 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
 
   // EmailJS API payload
   const emailData = {
-    service_id: 'service_04seibs',
-    template_id: 'template_nt3k734',
-    user_id: 'XKSpHuVf1RfNf144E',
+    service_id: process.env.EMAILJS_SERVICE_ID,
+    template_id: process.env.EMAILJS_TEMPLATE_ID,
+    user_id: process.env.EMAILJS_PUBLIC_KEY,
     template_params: {
       to_email: recipientEmail,
       otp_code: otpCode,
