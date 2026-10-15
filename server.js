@@ -8,9 +8,9 @@ const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit-table');
 const path = require('path');
 const fs = require('fs');
-const { 
+const {
   initDB, User, Student, Room, Exam, Seating, Mark, Pyq, PyqProgress,
-  ChatMessage, Poll, PollVote, Otp 
+  ChatMessage, Poll, PollVote, Otp
 } = require('./db');
 
 const app = express();
@@ -135,7 +135,7 @@ app.post('/api/otp/send-register', async (req, res) => {
     res.json({ success: true, message: `OTP is successfully send to your email (${cleanEmail}). Kindly check Inbox/Spam.` });
   } catch (err) {
     console.error('Send Register Email OTP Error:', err);
-    res.status(500).json({ success: false, message: 'Error in sending Email. Please ensure that you entered your Gmail App Password correct.' });
+    res.status(500).json({ success: false, message: 'Email send failed: ' + err.message });
   }
 });
 
@@ -402,11 +402,11 @@ app.get('/', isAuthenticated, async (req, res) => {
         created_at: p.created_at
       }));
 
-      res.render('index', { 
-        user, 
-        students, 
-        rooms, 
-        exams, 
+      res.render('index', {
+        user,
+        students,
+        rooms,
+        exams,
         adminUsers,
         searchedUsers,
         pyqs,
@@ -414,10 +414,10 @@ app.get('/', isAuthenticated, async (req, res) => {
         studentSubjects: [],
         userSearchQuery: userSearch,
         studentSearchQuery: studentSearch,
-        selectedBranch, 
-        selectedSemester, 
+        selectedBranch,
+        selectedSemester,
         activeTab,
-        studentInfo: null, 
+        studentInfo: null,
         studentSeating: [],
         studentExamsWithMarks: []
       });
@@ -507,22 +507,22 @@ app.get('/', isAuthenticated, async (req, res) => {
         studentSubjects = Array.from(subjectSet);
       }
 
-      res.render('index', { 
-        user, 
-        students: [], 
-        rooms: [], 
-        exams: [], 
+      res.render('index', {
+        user,
+        students: [],
+        rooms: [],
+        exams: [],
         adminUsers: [],
-        searchedUsers: [], 
+        searchedUsers: [],
         pyqs: [],
         studentPyqs,
         studentSubjects,
         userSearchQuery: '',
         studentSearchQuery: '',
-        selectedBranch: '', 
-        selectedSemester: '', 
+        selectedBranch: '',
+        selectedSemester: '',
         activeTab,
-        studentInfo, 
+        studentInfo,
         studentSeating,
         studentExamsWithMarks
       });
@@ -714,11 +714,11 @@ app.get('/api/poll/voters/:poll_id', isAuthenticated, isAdmin, async (req, res) 
       voted_at: v.voted_at
     }));
 
-    res.json({ 
-      success: true, 
-      question: poll.question, 
+    res.json({
+      success: true,
+      question: poll.question,
       is_multiple: poll.is_multiple,
-      voters: voterDetails 
+      voters: voterDetails
     });
   } catch (err) {
     console.error('Inspect Voters Error:', err);
@@ -843,8 +843,8 @@ app.post('/upload_marks/:exam_id', isAuthenticated, isAdmin, uploadMemory.single
         if (student) {
           await Mark.findOneAndUpdate(
             { student_id: student._id, exam_id: examId },
-            { 
-              marks_obtained: marksObtained, 
+            {
+              marks_obtained: marksObtained,
               total_marks: totalMarks,
               question_wise_marks: questionMarks
             },
@@ -1057,7 +1057,7 @@ app.post('/delete_student/:id', isAuthenticated, isAdmin, async (req, res) => {
 app.post('/add_room', isAuthenticated, isAdmin, async (req, res) => {
   const { room_no, columns, column_rows, rows } = req.body;
   const numCols = parseInt(columns, 10);
-  
+
   let colRowsArray = [];
   if (Array.isArray(column_rows)) {
     colRowsArray = column_rows.map(r => parseInt(r, 10) || 0);
@@ -1114,9 +1114,9 @@ app.post('/delete_room/:id', isAuthenticated, isAdmin, async (req, res) => {
 // ---------------- EXAM MANAGEMENT ----------------
 
 app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
-  const { 
-    subject, branch, semester, room_id, seat_color, start_reg_no, stop_reg_no, exam_date, start_time, end_time, 
-    second_exam_enabled, subject2, branch2, semester2, seat_color2, start_reg_no2, stop_reg_no2 
+  const {
+    subject, branch, semester, room_id, seat_color, start_reg_no, stop_reg_no, exam_date, start_time, end_time,
+    second_exam_enabled, subject2, branch2, semester2, seat_color2, start_reg_no2, stop_reg_no2
   } = req.body;
 
   try {
@@ -1226,8 +1226,8 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
         const stopReg = exam.stop_reg_no.trim();
         students = students.filter(s => {
           const r = s.reg_no.trim();
-          return r.localeCompare(startReg, undefined, { numeric: true }) >= 0 && 
-                 r.localeCompare(stopReg, undefined, { numeric: true }) <= 0;
+          return r.localeCompare(startReg, undefined, { numeric: true }) >= 0 &&
+            r.localeCompare(stopReg, undefined, { numeric: true }) <= 0;
         });
       }
 
