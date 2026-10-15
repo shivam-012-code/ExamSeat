@@ -18,9 +18,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // --- EMAIL TRANSPORTER CONFIGURATION ---
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'hello32387@gmail.com';
-const SENDER_APP_PASSWORD = process.env.SENDER_APP_PASSWORD || 'hcxfygjqbfftssxg';
-
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
