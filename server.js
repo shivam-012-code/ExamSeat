@@ -18,6 +18,11 @@ const PORT = process.env.PORT || 5000;
 
 // Real-time Email OTP sender function
 async function sendEmailOtp(recipientEmail, otpCode, purpose) {
+
+  if (!recipientEmail) {
+    throw new Error('Recipient email address is missing or empty.');
+  }
+
   const subject = purpose === 'register' ? 'ExamSeat Portal - Email Verification Code (OTP)' : 'ExamSeat Portal - Password Reset Verification Code (OTP)';
 
   // EmailJS API payload
@@ -27,6 +32,7 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
     user_id: process.env.EMAILJS_PUBLIC_KEY,
     template_params: {
       to_email: recipientEmail,
+      email: recipientEmail, // Dono pass kar rahe hain safety ke liye
       otp_code: otpCode,
       subject_text: subject
     }
