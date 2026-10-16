@@ -32,7 +32,7 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
     user_id: process.env.EMAILJS_PUBLIC_KEY,
     template_params: {
       to_email: recipientEmail,
-      email: recipientEmail, // Dono pass kar rahe hain safety ke liye
+      // email: recipientEmail,  Dono pass kar rahe hain safety ke liye
       otp_code: otpCode,
       subject_text: subject
     }
