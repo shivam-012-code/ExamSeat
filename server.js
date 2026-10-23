@@ -405,7 +405,6 @@ app.get('/', isAuthenticated, async (req, res) => {
         created_at: p.created_at
       }));
 
-      // Fetch Admin MCQs with Vote Statistics & Percentages
       const mcqsRaw = await Mcq.find().sort({ _id: -1 });
       const mcqs = await Promise.all(mcqsRaw.map(async (m) => {
         const votes = await McqVote.find({ mcq_id: m._id });
@@ -531,9 +530,17 @@ app.get('/', isAuthenticated, async (req, res) => {
         });
         const completedPyqIds = progressDocs.map(p => p.pyq_id.toString());
 
-        const subjectSet = new Set();
+        // Case-insensitive Subject Map to prevent duplicates like "Dsa" and "dsa"
+        const subjectMap = new Map();
+
         studentPyqs = pyqsForStudent.map(p => {
-          if (p.subject) subjectSet.add(p.subject.trim());
+          if (p.subject) {
+            const cleanSub = p.subject.trim();
+            const lowerKey = cleanSub.toLowerCase();
+            if (!subjectMap.has(lowerKey)) {
+              subjectMap.set(lowerKey, cleanSub);
+            }
+          }
           return {
             id: p._id.toString(),
             title: p.title,
@@ -546,14 +553,19 @@ app.get('/', isAuthenticated, async (req, res) => {
           };
         });
 
-        // Fetch MCQs for Student's specific Branch & Semester
         const mcqsForStudent = await Mcq.find(pyqFilter).sort({ _id: -1 });
         const myMcqVotes = await McqVote.find({ student_id: studentDoc._id });
         const voteMap = {};
         myMcqVotes.forEach(v => { voteMap[v.mcq_id.toString()] = v; });
 
         studentMcqs = mcqsForStudent.map(m => {
-          if (m.subject) subjectSet.add(m.subject.trim());
+          if (m.subject) {
+            const cleanSub = m.subject.trim();
+            const lowerKey = cleanSub.toLowerCase();
+            if (!subjectMap.has(lowerKey)) {
+              subjectMap.set(lowerKey, cleanSub);
+            }
+          }
           const myVote = voteMap[m._id.toString()];
           return {
             id: m._id.toString(),
@@ -566,12 +578,11 @@ app.get('/', isAuthenticated, async (req, res) => {
             has_submitted: !!myVote,
             selected_options: myVote ? myVote.selected_options : [],
             is_correct: myVote ? myVote.is_correct : null,
-            // Only send correct_options to student AFTER they have submitted their answer
             correct_options: myVote ? m.correct_options : []
           };
         });
 
-        studentSubjects = Array.from(subjectSet);
+        studentSubjects = Array.from(subjectMap.values());
       }
 
       res.render('index', {
@@ -855,7 +866,7 @@ app.post('/toggle_pyq_status/:pyq_id', isAuthenticated, async (req, res) => {
   }
 });
 
-// --- NEW MCQ ROUTES (CREATE, EDIT, DELETE, VOTE, INSPECT) ---
+// --- MCQ ROUTES ---
 
 app.post('/api/mcq/create', isAuthenticated, isAdmin, async (req, res) => {
   const { branch, semester, subject, question, options, correct_options, is_multiple } = req.body;
@@ -927,7 +938,6 @@ app.post('/api/mcq/edit/:id', isAuthenticated, isAdmin, async (req, res) => {
       is_multiple: Boolean(is_multiple)
     }, { new: true });
 
-    // Re-evaluate existing student votes if correct_options changed
     if (updatedMcq) {
       const existingVotes = await McqVote.find({ mcq_id: mcqId });
       const sortedCorrect = [...corrArray].sort((a, b) => a - b);
