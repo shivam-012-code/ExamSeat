@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const {
   initDB, User, Student, Room, Exam, Seating, Mark, Pyq, PyqProgress,
-  ChatMessage, Poll, PollVote, Otp
+  Mcq, McqVote, ChatMessage, Poll, PollVote, Otp
 } = require('./db');
 
 const app = express();
@@ -18,21 +18,20 @@ const PORT = process.env.PORT || 5000;
 
 // Real-time Email OTP sender function
 async function sendEmailOtp(recipientEmail, otpCode, purpose) {
-
   if (!recipientEmail) {
     throw new Error('Recipient email address is missing or empty.');
   }
 
-  const subject = purpose === 'register' ? 'ExamSeat Portal - Email Verification Code (OTP)' : 'ExamSeat Portal - Password Reset Verification Code (OTP)';
+  const subject = purpose === 'register'
+    ? 'ExamSeat Portal - Email Verification Code (OTP)'
+    : 'ExamSeat Portal - Password Reset Verification Code (OTP)';
 
-  // EmailJS API payload
   const emailData = {
     service_id: process.env.EMAILJS_SERVICE_ID,
     template_id: process.env.EMAILJS_TEMPLATE_ID,
     user_id: process.env.EMAILJS_PUBLIC_KEY,
     template_params: {
       to_email: recipientEmail,
-      // email: recipientEmail,  Dono pass kar rahe hain safety ke liye
       otp_code: otpCode,
       subject_text: subject
     }
@@ -40,9 +39,7 @@ async function sendEmailOtp(recipientEmail, otpCode, purpose) {
 
   const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(emailData)
   });
 
@@ -408,6 +405,41 @@ app.get('/', isAuthenticated, async (req, res) => {
         created_at: p.created_at
       }));
 
+      // Fetch Admin MCQs with Vote Statistics & Percentages
+      const mcqsRaw = await Mcq.find().sort({ _id: -1 });
+      const mcqs = await Promise.all(mcqsRaw.map(async (m) => {
+        const votes = await McqVote.find({ mcq_id: m._id });
+        const totalVotes = votes.length;
+        const optionCounts = {};
+        m.options.forEach(o => { optionCounts[o.option_id] = 0; });
+
+        votes.forEach(v => {
+          v.selected_options.forEach(optId => {
+            if (optionCounts[optId] !== undefined) {
+              optionCounts[optId]++;
+            }
+          });
+        });
+
+        return {
+          id: m._id.toString(),
+          branch: m.branch,
+          semester: m.semester,
+          subject: m.subject || 'General',
+          question: m.question,
+          is_multiple: m.is_multiple,
+          correct_options: m.correct_options,
+          options: m.options.map(o => ({
+            option_id: o.option_id,
+            text: o.text,
+            votes_count: optionCounts[o.option_id] || 0,
+            percentage: totalVotes > 0 ? Math.round(((optionCounts[o.option_id] || 0) / totalVotes) * 100) : 0
+          })),
+          total_votes: totalVotes,
+          created_at: m.created_at
+        };
+      }));
+
       res.render('index', {
         user,
         students,
@@ -416,7 +448,9 @@ app.get('/', isAuthenticated, async (req, res) => {
         adminUsers,
         searchedUsers,
         pyqs,
+        mcqs,
         studentPyqs: [],
+        studentMcqs: [],
         studentSubjects: [],
         userSearchQuery: userSearch,
         studentSearchQuery: studentSearch,
@@ -440,6 +474,7 @@ app.get('/', isAuthenticated, async (req, res) => {
       let studentSeating = [];
       let studentExamsWithMarks = [];
       let studentPyqs = [];
+      let studentMcqs = [];
       let studentSubjects = [];
 
       if (studentDoc) {
@@ -510,6 +545,32 @@ app.get('/', isAuthenticated, async (req, res) => {
             is_completed: completedPyqIds.includes(p._id.toString())
           };
         });
+
+        // Fetch MCQs for Student's specific Branch & Semester
+        const mcqsForStudent = await Mcq.find(pyqFilter).sort({ _id: -1 });
+        const myMcqVotes = await McqVote.find({ student_id: studentDoc._id });
+        const voteMap = {};
+        myMcqVotes.forEach(v => { voteMap[v.mcq_id.toString()] = v; });
+
+        studentMcqs = mcqsForStudent.map(m => {
+          if (m.subject) subjectSet.add(m.subject.trim());
+          const myVote = voteMap[m._id.toString()];
+          return {
+            id: m._id.toString(),
+            branch: m.branch,
+            semester: m.semester,
+            subject: m.subject || 'General',
+            question: m.question,
+            is_multiple: m.is_multiple,
+            options: m.options,
+            has_submitted: !!myVote,
+            selected_options: myVote ? myVote.selected_options : [],
+            is_correct: myVote ? myVote.is_correct : null,
+            // Only send correct_options to student AFTER they have submitted their answer
+            correct_options: myVote ? m.correct_options : []
+          };
+        });
+
         studentSubjects = Array.from(subjectSet);
       }
 
@@ -521,7 +582,9 @@ app.get('/', isAuthenticated, async (req, res) => {
         adminUsers: [],
         searchedUsers: [],
         pyqs: [],
+        mcqs: [],
         studentPyqs,
+        studentMcqs,
         studentSubjects,
         userSearchQuery: '',
         studentSearchQuery: '',
@@ -732,7 +795,7 @@ app.get('/api/poll/voters/:poll_id', isAuthenticated, isAdmin, async (req, res) 
   }
 });
 
-// ---------------- PYQs & QUESTIONS ROUTES ----------------
+// ---------------- PYQs & MCQ QUESTIONS ROUTES ----------------
 
 app.post('/upload_pyq', isAuthenticated, isAdmin, uploadDisk.single('pyq_file'), async (req, res) => {
   const { title, branch, semester, subject } = req.body;
@@ -789,6 +852,220 @@ app.post('/toggle_pyq_status/:pyq_id', isAuthenticated, async (req, res) => {
   } catch (err) {
     console.error('Toggle PYQ Progress Error:', err);
     res.status(500).json({ success: false, message: 'Server error updating progress' });
+  }
+});
+
+// --- NEW MCQ ROUTES (CREATE, EDIT, DELETE, VOTE, INSPECT) ---
+
+app.post('/api/mcq/create', isAuthenticated, isAdmin, async (req, res) => {
+  const { branch, semester, subject, question, options, correct_options, is_multiple } = req.body;
+  try {
+    if (!branch || !semester || !question) {
+      return res.status(400).json({ success: false, message: 'Branch, Semester, and Question are required.' });
+    }
+
+    const optArray = (Array.isArray(options) ? options : [])
+      .map((t, idx) => ({ option_id: idx + 1, text: String(t).trim() }))
+      .filter(o => o.text.length > 0);
+
+    if (optArray.length < 2) {
+      return res.status(400).json({ success: false, message: 'Please provide at least 2 valid options.' });
+    }
+
+    const corrArray = (Array.isArray(correct_options) ? correct_options : [correct_options])
+      .map(Number)
+      .filter(n => !isNaN(n) && optArray.some(o => o.option_id === n));
+
+    if (corrArray.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please mark at least one correct option before posting.' });
+    }
+
+    await Mcq.create({
+      branch: branch.trim(),
+      semester: parseInt(semester, 10),
+      subject: subject ? subject.trim() : 'General',
+      question: question.trim(),
+      options: optArray,
+      correct_options: corrArray,
+      is_multiple: Boolean(is_multiple)
+    });
+
+    res.json({ success: true, message: 'MCQ Question posted successfully!' });
+  } catch (err) {
+    console.error('Create MCQ Error:', err);
+    res.status(500).json({ success: false, message: 'Error creating MCQ question.' });
+  }
+});
+
+app.post('/api/mcq/edit/:id', isAuthenticated, isAdmin, async (req, res) => {
+  const mcqId = req.params.id;
+  const { branch, semester, subject, question, options, correct_options, is_multiple } = req.body;
+  try {
+    const optArray = (Array.isArray(options) ? options : [])
+      .map((t, idx) => ({ option_id: idx + 1, text: String(t).trim() }))
+      .filter(o => o.text.length > 0);
+
+    if (optArray.length < 2) {
+      return res.status(400).json({ success: false, message: 'Minimum 2 options are required.' });
+    }
+
+    const corrArray = (Array.isArray(correct_options) ? correct_options : [correct_options])
+      .map(Number)
+      .filter(n => !isNaN(n) && optArray.some(o => o.option_id === n));
+
+    if (corrArray.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please mark at least one correct option.' });
+    }
+
+    const updatedMcq = await Mcq.findByIdAndUpdate(mcqId, {
+      branch: branch.trim(),
+      semester: parseInt(semester, 10),
+      subject: subject ? subject.trim() : 'General',
+      question: question.trim(),
+      options: optArray,
+      correct_options: corrArray,
+      is_multiple: Boolean(is_multiple)
+    }, { new: true });
+
+    // Re-evaluate existing student votes if correct_options changed
+    if (updatedMcq) {
+      const existingVotes = await McqVote.find({ mcq_id: mcqId });
+      const sortedCorrect = [...corrArray].sort((a, b) => a - b);
+      for (const v of existingVotes) {
+        const sortedSelected = [...v.selected_options].sort((a, b) => a - b);
+        const isCorrectNow = sortedSelected.length === sortedCorrect.length &&
+          sortedSelected.every((val, index) => val === sortedCorrect[index]);
+        if (v.is_correct !== isCorrectNow) {
+          v.is_correct = isCorrectNow;
+          await v.save();
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'MCQ Question updated successfully!' });
+  } catch (err) {
+    console.error('Edit MCQ Error:', err);
+    res.status(500).json({ success: false, message: 'Error updating MCQ question.' });
+  }
+});
+
+app.post('/delete_mcq/:id', isAuthenticated, isAdmin, async (req, res) => {
+  const mcqId = req.params.id;
+  try {
+    await Mcq.findByIdAndDelete(mcqId);
+    await McqVote.deleteMany({ mcq_id: mcqId });
+  } catch (err) {
+    console.error('Delete MCQ Error:', err);
+  }
+  res.redirect('/?active_tab=pyqs');
+});
+
+app.post('/api/mcq/submit', isAuthenticated, async (req, res) => {
+  const { mcq_id, selected_options } = req.body;
+  const user = req.session.user;
+
+  try {
+    const student = await Student.findOne({ reg_no: user.username });
+    if (!student) {
+      return res.status(403).json({ success: false, message: 'Only registered students can submit answers.' });
+    }
+
+    const mcq = await Mcq.findById(mcq_id);
+    if (!mcq) {
+      return res.status(404).json({ success: false, message: 'MCQ Question not found.' });
+    }
+
+    const existingVote = await McqVote.findOne({ mcq_id: mcq._id, student_id: student._id });
+    if (existingVote) {
+      return res.status(400).json({ success: false, message: 'You have already submitted your answer! You cannot change it.' });
+    }
+
+    let opts = Array.isArray(selected_options) ? selected_options.map(Number) : [Number(selected_options)];
+    opts = opts.filter(n => !isNaN(n));
+
+    if (opts.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please select an option before submitting.' });
+    }
+
+    const sortedSelected = [...opts].sort((a, b) => a - b);
+    const sortedCorrect = [...mcq.correct_options].sort((a, b) => a - b);
+
+    const isCorrect = sortedSelected.length === sortedCorrect.length &&
+      sortedSelected.every((val, index) => val === sortedCorrect[index]);
+
+    await McqVote.create({
+      mcq_id: mcq._id,
+      student_id: student._id,
+      reg_no: student.reg_no,
+      student_name: student.name,
+      selected_options: opts,
+      is_correct: isCorrect
+    });
+
+    res.json({
+      success: true,
+      is_correct: isCorrect,
+      correct_options: mcq.correct_options,
+      selected_options: opts,
+      feedback_msg: isCorrect
+        ? '🎉 Congratulations! Your answer is correct.'
+        : '❌ wrong answer, please study well and focus on this topic'
+    });
+  } catch (err) {
+    console.error('Submit MCQ Error:', err);
+    res.status(500).json({ success: false, message: 'Error submitting answer.' });
+  }
+});
+
+app.get('/api/mcq/voters/:mcq_id', isAuthenticated, isAdmin, async (req, res) => {
+  const { mcq_id } = req.params;
+  try {
+    const mcq = await Mcq.findById(mcq_id);
+    if (!mcq) return res.status(404).json({ success: false, message: 'MCQ not found.' });
+
+    const votes = await McqVote.find({ mcq_id: mcq._id }).sort({ submitted_at: -1 });
+    const totalVotes = votes.length;
+
+    const optionMap = {};
+    const optionCounts = {};
+    mcq.options.forEach(o => {
+      optionMap[o.option_id] = o.text;
+      optionCounts[o.option_id] = 0;
+    });
+
+    votes.forEach(v => {
+      v.selected_options.forEach(optId => {
+        if (optionCounts[optId] !== undefined) optionCounts[optId]++;
+      });
+    });
+
+    const optionStats = mcq.options.map(o => ({
+      option_id: o.option_id,
+      text: o.text,
+      is_correct: mcq.correct_options.includes(o.option_id),
+      count: optionCounts[o.option_id] || 0,
+      percentage: totalVotes > 0 ? Math.round(((optionCounts[o.option_id] || 0) / totalVotes) * 100) : 0
+    }));
+
+    const voterDetails = votes.map(v => ({
+      reg_no: v.reg_no,
+      name: v.student_name,
+      chosen_options: v.selected_options.map(id => optionMap[id] || `Option ${id}`),
+      is_correct: v.is_correct,
+      submitted_at: v.submitted_at
+    }));
+
+    res.json({
+      success: true,
+      question: mcq.question,
+      is_multiple: mcq.is_multiple,
+      total_votes: totalVotes,
+      option_stats: optionStats,
+      voters: voterDetails
+    });
+  } catch (err) {
+    console.error('Inspect MCQ Voters Error:', err);
+    res.status(500).json({ success: false, message: 'Error retrieving MCQ voters.' });
   }
 });
 

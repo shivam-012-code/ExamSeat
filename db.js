@@ -81,6 +81,33 @@ const PyqProgressSchema = new mongoose.Schema({
 });
 PyqProgressSchema.index({ student_id: 1, pyq_id: 1 }, { unique: true });
 
+// --- NEW MCQ SCHEMAS ---
+
+const McqSchema = new mongoose.Schema({
+  branch: { type: String, required: true, trim: true },
+  semester: { type: Number, required: true },
+  subject: { type: String, default: 'General', trim: true },
+  question: { type: String, required: true, trim: true },
+  options: [{
+    option_id: { type: Number, required: true },
+    text: { type: String, required: true, trim: true }
+  }],
+  correct_options: [{ type: Number, required: true }],
+  is_multiple: { type: Boolean, default: false },
+  created_at: { type: Date, default: Date.now }
+});
+
+const McqVoteSchema = new mongoose.Schema({
+  mcq_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Mcq', required: true },
+  student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  reg_no: { type: String, required: true, trim: true },
+  student_name: { type: String, required: true, trim: true },
+  selected_options: [{ type: Number, required: true }],
+  is_correct: { type: Boolean, required: true },
+  submitted_at: { type: Date, default: Date.now }
+});
+McqVoteSchema.index({ mcq_id: 1, student_id: 1 }, { unique: true });
+
 const ChatMessageSchema = new mongoose.Schema({
   branch: { type: String, required: true, trim: true },
   semester: { type: Number, required: true },
@@ -132,6 +159,8 @@ const Seating = mongoose.model('Seating', SeatingSchema);
 const Mark = mongoose.model('Mark', MarkSchema);
 const Pyq = mongoose.model('Pyq', PyqSchema);
 const PyqProgress = mongoose.model('PyqProgress', PyqProgressSchema);
+const Mcq = mongoose.model('Mcq', McqSchema);
+const McqVote = mongoose.model('McqVote', McqVoteSchema);
 const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
 const Poll = mongoose.model('Poll', PollSchema);
 const PollVote = mongoose.model('PollVote', PollVoteSchema);
@@ -171,6 +200,8 @@ module.exports = {
   Mark,
   Pyq,
   PyqProgress,
+  Mcq,
+  McqVote,
   ChatMessage,
   Poll,
   PollVote,
