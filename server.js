@@ -407,7 +407,8 @@ app.get('/', isAuthenticated, async (req, res) => {
         exam_date: e.exam_date,
         start_time: e.start_time,
         end_time: e.end_time,
-        question_paper: e.question_paper || ''
+        question_paper: e.question_paper || '',
+        parallel_group_id: e.parallel_group_id || null
       }));
 
       const adminUsersRaw = await User.find({ role: 'admin' }).sort({ _id: -1 });
@@ -1459,21 +1460,11 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
       }
     }
 
-    await Exam.create({
-      subject: subject.trim(),
-      branch: branch || null,
-      semester: semester ? parseInt(semester, 10) : null,
-      room_id: room_id ? room_id : null,
-      room_snapshot: snapshot,
-      seat_color: seat_color || 'color1',
-      start_reg_no: start_reg_no ? start_reg_no.trim() : '',
-      stop_reg_no: stop_reg_no ? stop_reg_no.trim() : '',
-      exam_date: exam_date,
-      start_time: start_time,
-      end_time: end_time
-    });
+    const isDualExam = (second_exam_enabled === 'true' && subject2 && subject2.trim() !== '');
+    const groupId = isDualExam ? ('GRP_' + Date.now()) : null;
 
-    if (second_exam_enabled === 'true' && subject2) {
+    // Agar dual exam hai to Secondary exam pehle create karenge taaki sort({ _id: -1 }) karne par Primary upar aur Secondary uske theek niche aaye
+    if (isDualExam) {
       await Exam.create({
         subject: subject2.trim(),
         branch: branch2 || null,
@@ -1485,9 +1476,25 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
         stop_reg_no: stop_reg_no2 ? stop_reg_no2.trim() : '',
         exam_date: exam_date,
         start_time: start_time,
-        end_time: end_time
+        end_time: end_time,
+        parallel_group_id: groupId
       });
     }
+
+    await Exam.create({
+      subject: subject.trim(),
+      branch: branch || null,
+      semester: semester ? parseInt(semester, 10) : null,
+      room_id: room_id ? room_id : null,
+      room_snapshot: snapshot,
+      seat_color: seat_color || 'color1',
+      start_reg_no: start_reg_no ? start_reg_no.trim() : '',
+      stop_reg_no: stop_reg_no ? stop_reg_no.trim() : '',
+      exam_date: exam_date,
+      start_time: start_time,
+      end_time: end_time,
+      parallel_group_id: groupId
+    });
   } catch (err) { console.error(err); }
   res.redirect('/?active_tab=exams');
 });

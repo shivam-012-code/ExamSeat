@@ -58,7 +58,8 @@ const ExamSchema = new mongoose.Schema({
   exam_date: { type: Date, required: true },
   start_time: { type: String, required: true },
   end_time: { type: String, required: true },
-  question_paper: { type: String, default: '' }
+  question_paper: { type: String, default: '' },
+  parallel_group_id: { type: String, default: null }
 });
 
 const SeatingSchema = new mongoose.Schema({
