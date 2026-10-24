@@ -530,7 +530,6 @@ app.get('/', isAuthenticated, async (req, res) => {
         });
         const completedPyqIds = progressDocs.map(p => p.pyq_id.toString());
 
-        // Case-insensitive Subject Map to prevent duplicates like "Dsa" and "dsa"
         const subjectMap = new Map();
 
         studentPyqs = pyqsForStudent.map(p => {
@@ -1562,6 +1561,222 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
     }
   } catch (err) { console.error(err); }
   res.redirect('/?active_tab=exams');
+});
+
+// ---------------- EXAM SEAT LAYOUT PREVIEW & GRAPHICAL PDF ROUTES ----------------
+
+app.get('/api/exam_seat_layout/:exam_id', isAuthenticated, isAdmin, async (req, res) => {
+  const examId = req.params.exam_id;
+  try {
+    const exam = await Exam.findById(examId).populate('room_id');
+    if (!exam) return res.status(404).json({ success: false, message: 'Exam not found.' });
+    if (!exam.room_id) return res.status(400).json({ success: false, message: 'No room assigned to this exam.' });
+
+    const room = exam.room_id;
+
+    // Fetch all seating records for this room so admin sees the complete room layout
+    const roomExams = await Exam.find({ room_id: room._id });
+    const roomExamIds = roomExams.map(e => e._id);
+    const examMap = {};
+    roomExams.forEach(e => {
+      examMap[e._id.toString()] = {
+        subject: e.subject,
+        branch: e.branch,
+        semester: e.semester,
+        seat_color: e.seat_color || 'color1'
+      };
+    });
+
+    const seatingDocs = await Seating.find({ exam_id: { $in: roomExamIds } }).populate('student_id');
+    const assignedMap = {};
+
+    seatingDocs.forEach(s => {
+      const prefix = `${room.room_no}-`;
+      const seatKey = s.seat_no.startsWith(prefix) ? s.seat_no.slice(prefix.length) : `C${s.column_no}-R${s.row_no}-S1`;
+      if (s.student_id) {
+        const exInfo = examMap[s.exam_id.toString()] || {};
+        assignedMap[seatKey] = {
+          reg_no: s.student_id.reg_no,
+          last3: s.student_id.reg_no.slice(-3),
+          name: s.student_id.name,
+          branch: s.student_id.branch || exInfo.branch || '',
+          semester: s.student_id.semester || exInfo.semester || '',
+          subject: exInfo.subject || exam.subject,
+          exam_id: s.exam_id.toString()
+        };
+      }
+    });
+
+    res.json({
+      success: true,
+      exam: {
+        id: exam._id.toString(),
+        subject: exam.subject,
+        branch: exam.branch,
+        semester: exam.semester,
+        seat_color: exam.seat_color || 'color1',
+        exam_date: exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : '',
+        start_time: exam.start_time,
+        end_time: exam.end_time
+      },
+      room: {
+        id: room._id.toString(),
+        room_no: room.room_no,
+        columns: room.columns,
+        rows: room.rows,
+        column_rows: room.column_rows || [],
+        active_seats: room.active_seats || [],
+        seat_colors: room.seat_colors || []
+      },
+      assigned_seats: assignedMap
+    });
+  } catch (err) {
+    console.error('Exam Seat Layout Fetch Error:', err);
+    res.status(500).json({ success: false, message: 'Server error loading exam seat layout.' });
+  }
+});
+
+app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (req, res) => {
+  const examId = req.params.exam_id;
+  try {
+    const exam = await Exam.findById(examId).populate('room_id');
+    if (!exam || !exam.room_id) {
+      return res.status(404).send('Exam or Room not found');
+    }
+
+    const room = exam.room_id;
+    const roomExams = await Exam.find({ room_id: room._id });
+    const roomExamIds = roomExams.map(e => e._id);
+
+    const seatingDocs = await Seating.find({ exam_id: { $in: roomExamIds } }).populate('student_id');
+    const assignedMap = {};
+
+    seatingDocs.forEach(s => {
+      const prefix = `${room.room_no}-`;
+      const seatKey = s.seat_no.startsWith(prefix) ? s.seat_no.slice(prefix.length) : `C${s.column_no}-R${s.row_no}-S1`;
+      if (s.student_id) {
+        assignedMap[seatKey] = {
+          reg_no: s.student_id.reg_no,
+          name: s.student_id.name,
+          branch: s.student_id.branch || ''
+        };
+      }
+    });
+
+    const hasActiveSeatsConfig = room.active_seats && room.active_seats.length > 0;
+    const seatColorMap = {};
+    if (room.seat_colors && room.seat_colors.length > 0) {
+      room.seat_colors.forEach(sc => { seatColorMap[sc.seat_key] = sc.color; });
+    }
+
+    const doc = new PDFDocument({ margin: 25, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Seat_Layout_Room_${room.room_no}_${exam.subject.replace(/\s+/g, '_')}.pdf`);
+    doc.pipe(res);
+
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const margin = 25;
+    const usableWidth = pageWidth - margin * 2;
+
+    // Header Info
+    const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : 'N/A';
+    doc.fontSize(15).fillColor('#1e3a8a').font('Helvetica-Bold')
+      .text(`ROOM ${room.room_no} - GRAPHICAL SEAT LAYOUT`, margin, 20, { align: 'center', width: usableWidth });
+
+    doc.fontSize(10).fillColor('#334155').font('Helvetica')
+      .text(`Exam: ${exam.subject} (${exam.branch || 'All'} - Sem ${exam.semester || 'N/A'}) | Date: ${formattedDate} | Time: ${exam.start_time} - ${exam.end_time}`, margin, 40, { align: 'center', width: usableWidth });
+
+    // Blackboard Banner
+    doc.roundedRect(margin + 120, 56, usableWidth - 240, 18, 4).fill('#1e293b');
+    doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold')
+      .text('BLACKBOARD / TEACHER DESK (FRONT)', margin + 120, 61, { align: 'center', width: usableWidth - 240 });
+
+    const numCols = room.columns || 1;
+    const colGap = 10;
+    const colWidth = (usableWidth - (numCols - 1) * colGap) / numCols;
+
+    let maxRows = room.rows || 1;
+    if (room.column_rows && room.column_rows.length > 0) {
+      maxRows = Math.max(...room.column_rows);
+    }
+
+    const startY = 82;
+    const colHeaderH = 20;
+    const availableGridH = pageHeight - startY - margin - colHeaderH - 10;
+    const rowGap = 4;
+    const benchH = Math.min(34, Math.max(18, Math.floor((availableGridH - (maxRows - 1) * rowGap) / maxRows)));
+
+    for (let c = 1; c <= numCols; c++) {
+      const colX = margin + (c - 1) * (colWidth + colGap);
+      const rowsInCol = (room.column_rows && room.column_rows[c - 1]) ? room.column_rows[c - 1] : (room.rows || 1);
+
+      // Column Header Box
+      doc.roundedRect(colX, startY, colWidth, colHeaderH, 3).fillAndStroke('#eef2ff', '#cbd5e1');
+      doc.fillColor('#1e3a8a').fontSize(9).font('Helvetica-Bold')
+        .text(`Column ${c}`, colX, startY + 5, { width: colWidth, align: 'center' });
+
+      const labelW = 18;
+      const seatGap = 3;
+      const seatW = (colWidth - labelW - seatGap * 3) / 2;
+
+      for (let r = 1; r <= rowsInCol; r++) {
+        const rowY = startY + colHeaderH + 5 + (r - 1) * (benchH + rowGap);
+
+        // Row Label (R1, R2...)
+        doc.roundedRect(colX, rowY, labelW, benchH, 3).fill('#f59e0b');
+        doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold')
+          .text(`R${r}`, colX, rowY + (benchH / 2) - 3, { width: labelW, align: 'center' });
+
+        for (let s = 1; s <= 2; s++) {
+          const seatX = colX + labelW + seatGap + (s - 1) * (seatW + seatGap);
+          const seatKey = `C${c}-R${r}-S${s}`;
+          const isDisabled = hasActiveSeatsConfig && !room.active_seats.includes(seatKey);
+          const seatColor = seatColorMap[seatKey] || (s === 1 ? 'color1' : 'color2');
+          const assigned = assignedMap[seatKey];
+
+          let fillBg = '#f8fafc';
+          let strokeClr = '#94a3b8';
+          let textClr = '#0f172a';
+
+          if (isDisabled) {
+            fillBg = '#e2e8f0';
+            strokeClr = '#cbd5e1';
+            textClr = '#94a3b8';
+          } else if (assigned) {
+            fillBg = seatColor === 'color2' ? '#fef2f2' : '#eff6ff';
+            strokeClr = seatColor === 'color2' ? '#dc2626' : '#2563eb';
+            textClr = seatColor === 'color2' ? '#991b1b' : '#1e3a8a';
+          }
+
+          doc.roundedRect(seatX, rowY, seatW, benchH, 3).fillAndStroke(fillBg, strokeClr);
+
+          if (isDisabled) {
+            doc.fillColor(textClr).fontSize(6.5).font('Helvetica')
+              .text(`S${s}: Disabled`, seatX + 2, rowY + (benchH / 2) - 3, { width: seatW - 4, align: 'center' });
+          } else if (assigned) {
+            // Display FULL Registration Number inside the seat box
+            const regFontSize = seatW < 65 ? 6 : 7.5;
+            doc.fillColor(textClr).fontSize(regFontSize).font('Helvetica-Bold')
+              .text(assigned.reg_no, seatX + 2, rowY + 3, { width: seatW - 4, align: 'center', lineBreak: false });
+
+            if (benchH >= 24) {
+              doc.fillColor('#475569').fontSize(5.5).font('Helvetica')
+                .text(`S${s} (${assigned.name.slice(0, 12)})`, seatX + 2, rowY + benchH - 9, { width: seatW - 4, align: 'center', lineBreak: false });
+            }
+          } else {
+            doc.fillColor('#64748b').fontSize(6.5).font('Helvetica')
+              .text(`S${s}: Empty`, seatX + 2, rowY + (benchH / 2) - 3, { width: seatW - 4, align: 'center' });
+          }
+        }
+      }
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error('Download Seat Layout PDF Error:', err);
+    res.status(500).send('Error generating Seat Layout PDF');
+  }
 });
 
 // ---------------- EXPORTS ----------------

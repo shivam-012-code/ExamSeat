@@ -11,6 +11,49 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=PT+Serif+Caption:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        .bg-purple { background: #9333ea !important; color: white !important; }
+        .bg-blue { background: #2563eb !important; color: white !important; }
+        .bg-green { background: #16a34a !important; color: white !important; }
+        .bg-red { background: #dc2626 !important; color: white !important; }
+        .mcq-box-correct { background: #f0fdf4; border: 1px solid #86efac; }
+        .mcq-box-normal { background: #f8fafc; border: 1px solid #e2e8f0; }
+        .text-correct { color: #15803d; }
+        .text-normal { color: #1e293b; }
+        .mcq-lbl-default { background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; }
+        .mcq-lbl-locked { background: #f8fafc; border: 1px solid #e2e8f0; cursor: default; }
+        .mcq-lbl-correct { background: #dcfce7; border: 2px solid #16a34a; cursor: default; }
+        .mcq-lbl-wrong { background: #fee2e2; border: 2px solid #dc2626; cursor: default; }
+        .cursor-default { cursor: default; }
+        .cursor-pointer { cursor: pointer; }
+
+        /* Exam Seat Layout Preview Styles */
+        .exam-seat-item {
+            min-width: 54px;
+            height: 40px;
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            user-select: none;
+            transition: all 0.18s ease;
+            position: relative;
+        }
+        .exam-seat-item:hover {
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        .exam-seat-active-focus {
+            outline: 3px solid #facc15 !important;
+            transform: scale(1.08);
+        }
+    </style>
 </head>
 
 <body>
@@ -428,9 +471,9 @@
                                 </td>
                                 <td>
                                     <% if (isColor2) { %>
-                                        <div class="badge" style="background: #dc2626; color: white;">Red Seats</div>
+                                        <div class="badge bg-red">Red Seats</div>
                                     <% } else { %>
-                                        <div class="badge" style="background: #2563eb; color: white;">Blue Seats</div>
+                                        <div class="badge bg-blue">Blue Seats</div>
                                     <% } %>
                                 </td>
                                 <td>
@@ -438,11 +481,16 @@
                                     <small><%= exam.start_time %> - <%= exam.end_time %></small>
                                 </td>
                                 <td>
-                                    <a href="/generate_seating/<%= exam.id %>">
-                                        <button type="button" class="btn-blue"><i class="fa-solid fa-shuffle"></i> Randomize Seats</button>
+                                    <a href="/generate_seating/<%= exam.id %>" style="text-decoration: none;">
+                                        <button type="button" class="btn-blue" style="margin-bottom: 4px;"><i class="fa-solid fa-shuffle"></i> Randomize Seats</button>
                                     </a>
 
-                                    <div class="export-dropdown">
+                                    <!-- NEW SEAT LAYOUT BUTTON FOR EXAM -->
+                                    <button type="button" class="btn-blue" style="background: #0f766e; margin-bottom: 4px;" onclick="openExamSeatLayoutModal('<%= exam.id %>')">
+                                        <i class="fa-solid fa-table-cells"></i> Seat Layout
+                                    </button>
+
+                                    <div class="export-dropdown" style="margin-bottom: 4px;">
                                         <button type="button" class="btn-green"><i class="fa-solid fa-file-export"></i> Export <i class="fa-solid fa-caret-down"></i></button>
                                         <div class="export-dropdown-content">
                                             <a href="/export_seating_pdf/<%= exam.id %>" style="color: #dc2626;"><i class="fa-solid fa-file-pdf"></i> PDF File</a>
@@ -450,7 +498,7 @@
                                         </div>
                                     </div>
 
-                                    <button type="button" class="btn-yellow"
+                                    <button type="button" class="btn-yellow" style="margin-bottom: 4px;"
                                         onclick="openEditExamModal('<%= exam.id %>', '<%= exam.subject %>', '<%= exam.branch %>', '<%= exam.semester %>', '<%= exam.room_id %>', '<%= exam.seat_color %>', '<%= exam.start_reg_no %>', '<%= exam.stop_reg_no %>', '<%= formattedDate %>', '<%= exam.start_time %>', '<%= exam.end_time %>')">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit
                                     </button>
@@ -522,7 +570,6 @@
                     <p class="select-instruction">Left column se PYQ document upload karein ya Right column se specific Branch aur Semester ke liye MCQ question post karein.</p>
                     <br>
 
-                    <!-- TWO COLUMNS SIDE BY SIDE: LEFT = PYQ UPLOAD, RIGHT = MCQ CREATION -->
                     <div class="form-grid" style="align-items: start; margin-bottom: 30px;">
 
                         <!-- COLUMN 1: UPLOAD PYQ DOCUMENT -->
@@ -716,7 +763,7 @@
                                     <td>
                                         <strong><%= m.question %></strong><br>
                                         <small style="color: #64748b;">Subject: <b><%= m.subject %></b></small><br>
-                                        <span class="badge" style="font-size: 10px; background: <%= m.is_multiple ? '#9333ea' : '#2563eb' %>; color: white; display: inline-block; margin-top: 4px;">
+                                        <span class="badge <%= m.is_multiple ? 'bg-purple' : 'bg-blue' %>" style="font-size: 10px; display: inline-block; margin-top: 4px;">
                                             <%= m.is_multiple ? 'Multi-Option' : 'Single-Option' %>
                                         </span>
                                     </td>
@@ -729,15 +776,15 @@
                                         <% m.options.forEach(opt => { 
                                             const isCorr = m.correct_options.includes(opt.option_id);
                                         %>
-                                            <div style="margin-bottom: 6px; background: <%= isCorr ? '#f0fdf4' : '#f8fafc' %>; border: 1px solid <%= isCorr ? '#86efac' : '#e2e8f0' %>; padding: 6px 10px; border-radius: 6px;">
+                                            <div class="<%= isCorr ? 'mcq-box-correct' : 'mcq-box-normal' %>" style="margin-bottom: 6px; padding: 6px 10px; border-radius: 6px;">
                                                 <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold;">
-                                                    <span style="color: <%= isCorr ? '#15803d' : '#1e293b' %>;">
+                                                    <span class="<%= isCorr ? 'text-correct' : 'text-normal' %>">
                                                         <% if (isCorr) { %>✔ (Correct) <% } %><%= opt.text %>
                                                     </span>
                                                     <span style="color: #1e3a8a;"><%= opt.votes_count %> votes (<%= opt.percentage %>%)</span>
                                                 </div>
                                                 <div class="poll-progress-bg" style="margin: 4px 0 0 0; height: 6px;">
-                                                    <div class="poll-progress-fill" style="width: <%= opt.percentage %>%; background: <%= isCorr ? '#16a34a' : '#2563eb' %>;"></div>
+                                                    <div class="poll-progress-fill <%= isCorr ? 'bg-green' : 'bg-blue' %> js-set-width" data-width="<%= opt.percentage %>"></div>
                                                 </div>
                                             </div>
                                         <% }) %>
@@ -977,7 +1024,7 @@
                                     </td>
                                     <td>
                                         <% if (e.marks !== null && e.marks !== undefined) { %>
-                                            <span class="badge" style="background: #16a34a; color: white; font-size: 13px; padding: 6px 12px;">
+                                            <span class="badge bg-green" style="font-size: 13px; padding: 6px 12px;">
                                                 Total: <%= e.marks %> / <%= e.total_marks %>
                                             </span>
 
@@ -1053,7 +1100,7 @@
                                     </td>
                                     <td>
                                         <% if (p.is_completed) { %>
-                                            <span id="status_pyq_<%= p.id %>" class="badge" style="background: #16a34a; color: white;">Completed</span>
+                                            <span id="status_pyq_<%= p.id %>" class="badge bg-green">Completed</span>
                                         <% } else { %>
                                             <span id="status_pyq_<%= p.id %>" class="badge" style="background: #94a3b8; color: white;">Pending</span>
                                         <% } %>
@@ -1079,7 +1126,7 @@
                                             <span class="badge" style="margin-bottom: 6px; display: inline-block;"><%= m.subject %></span>
                                             <h4 style="margin: 0; font-size: 16px; color: #0f172a;">Q<%= index + 1 %>. <%= m.question %></h4>
                                         </div>
-                                        <span class="badge" style="background: <%= m.is_multiple ? '#9333ea' : '#2563eb' %>; color: white; font-size: 11px; white-space: nowrap;">
+                                        <span class="badge <%= m.is_multiple ? 'bg-purple' : 'bg-blue' %>" style="font-size: 11px; white-space: nowrap;">
                                             <%= m.is_multiple ? 'Multi-Option Choice' : 'Single-Option Choice' %>
                                         </span>
                                     </div>
@@ -1088,23 +1135,24 @@
                                         <% m.options.forEach(opt => { 
                                             const isSelected = m.has_submitted && m.selected_options.includes(opt.option_id);
                                             const isCorrectOpt = m.has_submitted && m.correct_options.includes(opt.option_id);
-                                            let rowStyle = 'background: #f8fafc; border: 1px solid #e2e8f0;';
+                                            let rowClass = m.has_submitted ? 'mcq-lbl-locked' : 'mcq-lbl-default';
                                             if (m.has_submitted) {
                                                 if (isCorrectOpt) {
-                                                    rowStyle = 'background: #dcfce7; border: 2px solid #16a34a;';
+                                                    rowClass = 'mcq-lbl-correct';
                                                 } else if (isSelected && !isCorrectOpt) {
-                                                    rowStyle = 'background: #fee2e2; border: 2px solid #dc2626;';
+                                                    rowClass = 'mcq-lbl-wrong';
                                                 }
                                             }
                                         %>
-                                            <label class="mcq-student-opt-label" id="mcq_lbl_<%= m.id %>_<%= opt.option_id %>" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 6px; cursor: <%= m.has_submitted ? 'default' : 'pointer' %>; <%= rowStyle %>">
+                                            <label class="mcq-student-opt-label <%= rowClass %>" id="mcq_lbl_<%= m.id %>_<%= opt.option_id %>" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 6px;">
                                                 <div style="display: flex; align-items: center; gap: 10px;">
                                                     <input type="<%= m.is_multiple ? 'checkbox' : 'radio' %>"
                                                            name="student_mcq_<%= m.id %>"
                                                            value="<%= opt.option_id %>"
                                                            <%= isSelected ? 'checked' : '' %>
                                                            <%= m.has_submitted ? 'disabled' : '' %>
-                                                           style="width: 18px; height: 18px; accent-color: #2563eb; cursor: <%= m.has_submitted ? 'default' : 'pointer' %>;">
+                                                           class="<%= m.has_submitted ? 'cursor-default' : 'cursor-pointer' %>"
+                                                           style="width: 18px; height: 18px; accent-color: #2563eb;">
                                                     <span style="font-size: 14px; font-weight: bold; color: #1e293b;"><%= opt.text %></span>
                                                 </div>
                                                 <div class="mcq-opt-badges" id="mcq_badge_<%= m.id %>_<%= opt.option_id %>">
@@ -1113,9 +1161,9 @@
                                                             <span class="badge" style="background: #1e293b; color: white; font-size: 11px; margin-right: 5px;">Your Choice</span>
                                                         <% } %>
                                                         <% if (isCorrectOpt) { %>
-                                                            <span class="badge" style="background: #16a34a; color: white; font-size: 11px;">✔ Correct Answer</span>
+                                                            <span class="badge bg-green" style="font-size: 11px;">✔ Correct Answer</span>
                                                         <% } else if (isSelected && !isCorrectOpt) { %>
-                                                            <span class="badge" style="background: #dc2626; color: white; font-size: 11px;">✖ Wrong</span>
+                                                            <span class="badge bg-red" style="font-size: 11px;">✖ Wrong</span>
                                                         <% } %>
                                                     <% } %>
                                                 </div>
@@ -1185,6 +1233,42 @@
             <% } %>
 
         </main>
+    </div>
+
+    <!-- NEW EXAM SEAT LAYOUT MODAL (ADMIN VIEW + PDF DOWNLOAD) -->
+    <div id="examSeatLayoutModal" class="modal hidden">
+        <div class="modal-content" style="width: 94%; max-width: 1120px; max-height: 92vh; overflow-y: auto;">
+            <!-- Top Header with Download Seat Layout & Close Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 20px;"><i class="fa-solid fa-table-cells"></i> Exam Seat Layout — Room <span id="examLayoutRoomTitle"></span></h2>
+                    <small id="examLayoutSubTitle" style="color: #475569; font-weight: bold;"></small>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <a id="downloadExamSeatLayoutBtn" href="#" style="text-decoration: none;">
+                        <button type="button" class="btn-green"><i class="fa-solid fa-file-pdf"></i> Download Seat Layout</button>
+                    </a>
+                    <button type="button" class="btn-red" onclick="closeExamSeatLayoutModal()"><i class="fa-solid fa-xmark"></i> Close</button>
+                </div>
+            </div>
+
+            <!-- Hover / Click Full Registration Number Info Bar -->
+            <div id="examSeatHoverBanner" style="background: #eef2ff; border: 1px solid #bfdbfe; border-left: 5px solid #1e3a8a; padding: 10px 15px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; color: #1e293b; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span>💡 <strong>Hover or Click on any occupied seat</strong> to view the student's Full Registration Number and Name.</span>
+                <span id="examSeatStatsBadge" class="badge"></span>
+            </div>
+
+            <div style="background: #1e293b; color: white; text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; letter-spacing: 1px; font-size: 13px;">
+                📺 BLACKBOARD / TEACHER DESK (FRONT)
+            </div>
+
+            <div id="examLayoutLoading" style="text-align: center; padding: 25px; font-weight: bold; color: #1e3a8a;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading Exam Seat Layout...
+            </div>
+
+            <div id="examSeatsGridContainer" style="display: flex; gap: 15px; justify-content: flex-start; align-items: flex-start; overflow-x: auto; padding: 15px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; white-space: nowrap;">
+            </div>
+        </div>
     </div>
 
     <!-- EDIT MCQ MODAL (ADMIN) -->
@@ -1423,7 +1507,7 @@
         </div>
     </div>
 
-    <!-- GRAPHICAL SEAT SELECTION MODAL -->
+    <!-- GRAPHICAL SEAT SELECTION MODAL (ROOMS TAB) -->
     <div id="roomLayoutModal" class="modal hidden">
         <div class="modal-content" style="width: 92%; max-width: 1100px; max-height: 90vh; overflow-y: auto;">
             <form id="roomSeatsForm" action="" method="POST" onsubmit="prepareSeatColorsSubmission()">
@@ -1568,6 +1652,184 @@
         let activeAdminChatBranch = '';
         let activeAdminChatSemester = '';
         let chatPollInterval = null;
+
+        // --- EXAM SEAT LAYOUT PREVIEW & HOVER/CLICK FULL REG NO FUNCTIONS ---
+
+        async function openExamSeatLayoutModal(examId) {
+            const modal = document.getElementById('examSeatLayoutModal');
+            const loading = document.getElementById('examLayoutLoading');
+            const container = document.getElementById('examSeatsGridContainer');
+            const hoverBanner = document.getElementById('examSeatHoverBanner');
+            const downloadBtn = document.getElementById('downloadExamSeatLayoutBtn');
+
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            container.innerHTML = '';
+            downloadBtn.href = '/download_seat_layout_pdf/' + examId;
+            hoverBanner.innerHTML = `
+                <span>💡 <strong>Hover or Click on any occupied seat</strong> to view the student's Full Registration Number and Name.</span>
+                <span id="examSeatStatsBadge" class="badge"></span>
+            `;
+
+            try {
+                const res = await fetch('/api/exam_seat_layout/' + examId);
+                const data = await res.json();
+                loading.classList.add('hidden');
+
+                if (!data.success) {
+                    container.innerHTML = `<p class="no-data-msg">${data.message || 'Could not load seat layout.'}</p>`;
+                    return;
+                }
+
+                const { exam, room, assigned_seats } = data;
+                document.getElementById('examLayoutRoomTitle').innerText = room.room_no;
+                document.getElementById('examLayoutSubTitle').innerText = `${exam.subject} (${exam.branch || 'All'} - Sem ${exam.semester || 'N/A'}) | Date: ${exam.exam_date} | Time: ${exam.start_time} - ${exam.end_time}`;
+
+                const hasActiveConfig = room.active_seats && room.active_seats.length > 0;
+                const colorMap = {};
+                if (room.seat_colors && room.seat_colors.length > 0) {
+                    room.seat_colors.forEach(sc => { colorMap[sc.seat_key] = sc.color; });
+                }
+
+                let occupiedCount = 0;
+
+                for (let c = 1; c <= room.columns; c++) {
+                    const rowsInCol = (room.column_rows && room.column_rows[c - 1]) ? room.column_rows[c - 1] : (room.rows || 1);
+                    let colHtml = `<div class="column-box">`;
+                    colHtml += `<div class="column-header" style="padding: 4px 0;">Column ${c}</div>`;
+
+                    for (let r = 1; r <= rowsInCol; r++) {
+                        colHtml += `<div class="bench-row">`;
+                        colHtml += `<span class="badge" style="background: #f59e0b; color: white; font-size: 10px; padding: 4px 6px;">R${r}</span>`;
+
+                        for (let s = 1; s <= 2; s++) {
+                            const seatKey = `C${c}-R${r}-S${s}`;
+                            const isDisabled = hasActiveConfig && !room.active_seats.includes(seatKey);
+                            const seatColor = colorMap[seatKey] || (s === 1 ? 'color1' : 'color2');
+                            const student = assigned_seats[seatKey];
+
+                            let cssClass = 'seat-color1';
+                            if (isDisabled) {
+                                cssClass = 'seat-disabled';
+                            } else if (seatColor === 'color2') {
+                                cssClass = 'seat-color2';
+                            }
+
+                            if (student) {
+                                occupiedCount++;
+                                const tooltipText = `Seat: ${room.room_no}-${seatKey} | Full Reg No: ${student.reg_no} | Name: ${student.name} (${student.branch} Sem ${student.semester})`;
+                                colHtml += `
+                                    <div class="exam-seat-item ${cssClass}"
+                                         id="exam_seat_${seatKey}"
+                                         title="${tooltipText}"
+                                         data-seat="${room.room_no}-${seatKey}"
+                                         data-reg="${student.reg_no}"
+                                         data-last3="${student.last3}"
+                                         data-name="${student.name}"
+                                         data-branch="${student.branch}"
+                                         data-sem="${student.semester}"
+                                         data-subject="${student.subject}"
+                                         onmouseenter="showFullRegOnSeat(this, false)"
+                                         onmouseleave="restoreLast3OnSeat(this)"
+                                         onclick="showFullRegOnSeat(this, true)">
+                                        <span style="font-size: 9px; opacity: 0.85;">S${s}</span>
+                                        <span class="seat-reg-label" style="font-size: 12px; letter-spacing: 0.5px;">..${student.last3}</span>
+                                    </div>
+                                `;
+                            } else if (isDisabled) {
+                                colHtml += `
+                                    <div class="exam-seat-item seat-disabled" title="Seat ${seatKey} (Disabled)">
+                                        <span style="font-size: 10px;">S${s}</span>
+                                    </div>
+                                `;
+                            } else {
+                                colHtml += `
+                                    <div class="exam-seat-item ${cssClass}" style="opacity: 0.45;" title="Seat ${room.room_no}-${seatKey} (Empty)">
+                                        <span style="font-size: 9px;">S${s}</span>
+                                        <span style="font-size: 9px;">Empty</span>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        colHtml += `</div>`;
+                    }
+
+                    colHtml += `</div>`;
+                    container.innerHTML += colHtml;
+                }
+
+                const badgeEl = document.getElementById('examSeatStatsBadge');
+                if (badgeEl) badgeEl.innerText = `${occupiedCount} Students Seated`;
+            } catch (err) {
+                console.error(err);
+                loading.classList.add('hidden');
+                container.innerHTML = '<p class="no-data-msg" style="color: red;">Error loading seat layout.</p>';
+            }
+        }
+
+        function showFullRegOnSeat(seatElem, isClick) {
+            const fullReg = seatElem.getAttribute('data-reg');
+            const name = seatElem.getAttribute('data-name');
+            const seatNo = seatElem.getAttribute('data-seat');
+            const branch = seatElem.getAttribute('data-branch');
+            const sem = seatElem.getAttribute('data-sem');
+            const subject = seatElem.getAttribute('data-subject');
+
+            const labelSpan = seatElem.querySelector('.seat-reg-label');
+            if (labelSpan) {
+                labelSpan.innerText = fullReg;
+                labelSpan.style.fontSize = '10px';
+            }
+
+            if (isClick) {
+                document.querySelectorAll('.exam-seat-item').forEach(el => {
+                    if (el !== seatElem) {
+                        el.classList.remove('exam-seat-active-focus');
+                        el.removeAttribute('data-locked');
+                        const sp = el.querySelector('.seat-reg-label');
+                        if (sp && el.getAttribute('data-last3')) {
+                            sp.innerText = '..' + el.getAttribute('data-last3');
+                            sp.style.fontSize = '12px';
+                        }
+                    }
+                });
+                const isAlreadyLocked = seatElem.getAttribute('data-locked') === 'true';
+                if (isAlreadyLocked) {
+                    seatElem.removeAttribute('data-locked');
+                    seatElem.classList.remove('exam-seat-active-focus');
+                } else {
+                    seatElem.setAttribute('data-locked', 'true');
+                    seatElem.classList.add('exam-seat-active-focus');
+                }
+            }
+
+            const hoverBanner = document.getElementById('examSeatHoverBanner');
+            if (hoverBanner) {
+                hoverBanner.innerHTML = `
+                    <div>
+                        🎯 <strong>Seat:</strong> <span class="badge">${seatNo}</span> &nbsp;|&nbsp;
+                        <strong>Full Reg No:</strong> <span class="badge bg-blue" style="font-size: 13px;">${fullReg}</span> &nbsp;|&nbsp;
+                        <strong>Name:</strong> <b>${name}</b> (${branch} - Sem ${sem}) &nbsp;|&nbsp;
+                        <strong>Subject:</strong> ${subject}
+                    </div>
+                `;
+            }
+        }
+
+        function restoreLast3OnSeat(seatElem) {
+            if (seatElem.getAttribute('data-locked') === 'true') return;
+            const last3 = seatElem.getAttribute('data-last3');
+            const labelSpan = seatElem.querySelector('.seat-reg-label');
+            if (labelSpan && last3) {
+                labelSpan.innerText = '..' + last3;
+                labelSpan.style.fontSize = '12px';
+            }
+        }
+
+        function closeExamSeatLayoutModal() {
+            document.getElementById('examSeatLayoutModal').classList.add('hidden');
+        }
 
         // --- MCQ FUNCTIONS (ADMIN & STUDENT) ---
 
@@ -1833,7 +2095,6 @@
                     return;
                 }
 
-                // Lock all inputs for this MCQ
                 const allInputs = document.querySelectorAll(`input[name="student_mcq_${mcqId}"]`);
                 allInputs.forEach(inp => {
                     inp.disabled = true;
@@ -1861,9 +2122,9 @@
                             bHtml += `<span class="badge" style="background: #1e293b; color: white; font-size: 11px; margin-right: 5px;">Your Choice</span>`;
                         }
                         if (isCorrectOpt) {
-                            bHtml += `<span class="badge" style="background: #16a34a; color: white; font-size: 11px;">✔ Correct Answer</span>`;
+                            bHtml += `<span class="badge bg-green" style="font-size: 11px;">✔ Correct Answer</span>`;
                         } else if (isSelected && !isCorrectOpt) {
-                            bHtml += `<span class="badge" style="background: #dc2626; color: white; font-size: 11px;">✖ Wrong</span>`;
+                            bHtml += `<span class="badge bg-red" style="font-size: 11px;">✖ Wrong</span>`;
                         }
                         badgeBox.innerHTML = bHtml;
                     }
@@ -2307,9 +2568,7 @@
                     checkboxElem.checked = data.is_completed;
                     if (statusSpan) {
                         if (data.is_completed) {
-                            statusSpan.className = 'badge';
-                            statusSpan.style.background = '#16a34a';
-                            statusSpan.style.color = '#ffffff';
+                            statusSpan.className = 'badge bg-green';
                             statusSpan.innerText = 'Completed';
                         } else {
                             statusSpan.className = 'badge';
@@ -2351,7 +2610,6 @@
                 }
             }
 
-            // Also filter MCQs by subject
             const mcqCards = document.querySelectorAll('.student-mcq-card');
             mcqCards.forEach(card => {
                 const sub = (card.getAttribute('data-subject') || '').toLowerCase().trim();
@@ -2398,7 +2656,7 @@
                             <td><span class="badge">${m.branch || 'N/A'}</span> Sem ${m.semester || 'N/A'}</td>
                             <td>${qHtml}</td>
                             <td>
-                                <span class="badge" style="background: #16a34a; color: white; font-size: 12px; padding: 5px 10px;">
+                                <span class="badge bg-green" style="font-size: 12px; padding: 5px 10px;">
                                     ${m.marks_obtained} / ${m.total_marks}
                                 </span>
                             </td>
@@ -2747,6 +3005,10 @@
         }
 
         document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.js-set-width').forEach(function (el) {
+                el.style.width = (el.getAttribute('data-width') || 0) + '%';
+            });
+
             const urlParams = new URLSearchParams(window.location.search);
             const activeTab = urlParams.get('active_tab');
             if (activeTab) {
