@@ -16,6 +16,39 @@ const {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Helper: Create a frozen snapshot of a Room's layout when an Exam is created
+function buildRoomSnapshot(roomDoc) {
+  if (!roomDoc) return null;
+  return {
+    room_no: roomDoc.room_no,
+    rows: roomDoc.rows || (roomDoc.column_rows && roomDoc.column_rows.length ? Math.max(...roomDoc.column_rows) : 0),
+    columns: roomDoc.columns,
+    column_rows: roomDoc.column_rows ? [...roomDoc.column_rows] : [],
+    active_seats: roomDoc.active_seats ? [...roomDoc.active_seats] : [],
+    seat_colors: roomDoc.seat_colors
+      ? roomDoc.seat_colors.map(sc => ({ seat_key: sc.seat_key, color: sc.color }))
+      : [],
+    capacity: roomDoc.capacity
+  };
+}
+
+// Helper: Always prefer the exam's frozen room_snapshot over the live Room document
+function getEffectiveRoomLayout(examDoc, fallbackRoomDoc) {
+  if (examDoc && examDoc.room_snapshot && examDoc.room_snapshot.columns > 0) {
+    return {
+      _id: examDoc.room_id ? (examDoc.room_id._id || examDoc.room_id) : (fallbackRoomDoc ? fallbackRoomDoc._id : null),
+      room_no: examDoc.room_snapshot.room_no || (fallbackRoomDoc ? fallbackRoomDoc.room_no : 'N/A'),
+      rows: examDoc.room_snapshot.rows,
+      columns: examDoc.room_snapshot.columns,
+      column_rows: examDoc.room_snapshot.column_rows || [],
+      active_seats: examDoc.room_snapshot.active_seats || [],
+      seat_colors: examDoc.room_snapshot.seat_colors || [],
+      capacity: examDoc.room_snapshot.capacity
+    };
+  }
+  return fallbackRoomDoc;
+}
+
 // Real-time Email OTP sender function
 async function sendEmailOtp(recipientEmail, otpCode, purpose) {
   if (!recipientEmail) {
@@ -365,7 +398,9 @@ app.get('/', isAuthenticated, async (req, res) => {
         branch: e.branch,
         semester: e.semester,
         room_id: e.room_id ? e.room_id._id.toString() : null,
-        room_no: e.room_id ? e.room_id.room_no : null,
+        room_no: (e.room_snapshot && e.room_snapshot.room_no)
+          ? e.room_snapshot.room_no
+          : (e.room_id ? e.room_id.room_no : null),
         seat_color: e.seat_color || 'color1',
         start_reg_no: e.start_reg_no || '',
         stop_reg_no: e.stop_reg_no || '',
@@ -486,7 +521,9 @@ app.get('/', isAuthenticated, async (req, res) => {
           exam_date: s.exam_id ? s.exam_id.exam_date : null,
           start_time: s.exam_id ? s.exam_id.start_time : '',
           end_time: s.exam_id ? s.exam_id.end_time : '',
-          room_no: s.room_id ? s.room_id.room_no : 'N/A',
+          room_no: (s.exam_id && s.exam_id.room_snapshot && s.exam_id.room_snapshot.room_no)
+            ? s.exam_id.room_snapshot.room_no
+            : (s.room_id ? s.room_id.room_no : 'N/A'),
           row_no: s.row_no,
           column_no: s.column_no,
           seat_no: s.seat_no
@@ -1387,6 +1424,8 @@ app.post('/update_room_seats/:id', isAuthenticated, isAdmin, async (req, res) =>
   }
 
   try {
+    // Only updates the Room template for FUTURE exam creations.
+    // Existing exams already have their own room_snapshot frozen!
     await Room.findByIdAndUpdate(roomId, { active_seats: seatsArray, seat_colors: seatColorsArray });
   } catch (err) { console.error(err); }
   res.redirect('/?active_tab=rooms');
@@ -1403,7 +1442,7 @@ app.post('/delete_room/:id', isAuthenticated, isAdmin, async (req, res) => {
   res.redirect('/?active_tab=rooms');
 });
 
-// ---------------- EXAM MANAGEMENT ----------------
+// ---------------- EXAM MANAGEMENT (WITH FROZEN ROOM LAYOUT SNAPSHOT) ----------------
 
 app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
   const {
@@ -1412,11 +1451,20 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
   } = req.body;
 
   try {
+    let snapshot = null;
+    if (room_id) {
+      const roomDoc = await Room.findById(room_id);
+      if (roomDoc) {
+        snapshot = buildRoomSnapshot(roomDoc);
+      }
+    }
+
     await Exam.create({
       subject: subject.trim(),
       branch: branch || null,
       semester: semester ? parseInt(semester, 10) : null,
       room_id: room_id ? room_id : null,
+      room_snapshot: snapshot,
       seat_color: seat_color || 'color1',
       start_reg_no: start_reg_no ? start_reg_no.trim() : '',
       stop_reg_no: stop_reg_no ? stop_reg_no.trim() : '',
@@ -1431,6 +1479,7 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
         branch: branch2 || null,
         semester: semester2 ? parseInt(semester2, 10) : null,
         room_id: room_id ? room_id : null,
+        room_snapshot: snapshot,
         seat_color: seat_color2 || 'color2',
         start_reg_no: start_reg_no2 ? start_reg_no2.trim() : '',
         stop_reg_no: stop_reg_no2 ? stop_reg_no2.trim() : '',
@@ -1448,7 +1497,10 @@ app.post('/edit_exam/:id', isAuthenticated, isAdmin, async (req, res) => {
   const { subject, branch, semester, room_id, seat_color, start_reg_no, stop_reg_no, exam_date, start_time, end_time } = req.body;
 
   try {
-    await Exam.findByIdAndUpdate(examId, {
+    const existingExam = await Exam.findById(examId);
+    if (!existingExam) return res.redirect('/?active_tab=exams');
+
+    const updateData = {
       subject: subject.trim(),
       branch: branch || null,
       semester: semester ? parseInt(semester, 10) : null,
@@ -1459,7 +1511,22 @@ app.post('/edit_exam/:id', isAuthenticated, isAdmin, async (req, res) => {
       exam_date: exam_date,
       start_time: start_time,
       end_time: end_time
-    });
+    };
+
+    // Only capture a new room snapshot if the admin switched to a different room
+    // or if this old exam didn't have a snapshot yet
+    const prevRoomId = existingExam.room_id ? existingExam.room_id.toString() : '';
+    const newRoomId = room_id ? room_id.toString() : '';
+    const hasExistingSnapshot = existingExam.room_snapshot && existingExam.room_snapshot.columns > 0;
+
+    if (newRoomId && (newRoomId !== prevRoomId || !hasExistingSnapshot)) {
+      const newRoomDoc = await Room.findById(newRoomId);
+      if (newRoomDoc) {
+        updateData.room_snapshot = buildRoomSnapshot(newRoomDoc);
+      }
+    }
+
+    await Exam.findByIdAndUpdate(examId, updateData);
   } catch (err) { console.error(err); }
   res.redirect('/?active_tab=exams');
 });
@@ -1482,9 +1549,21 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
     const targetExam = await Exam.findById(examId);
     if (!targetExam) return res.redirect('/?active_tab=exams');
 
-    let roomExams = targetExam.room_id ? await Exam.find({ room_id: targetExam.room_id }) : [targetExam];
-    const room = await Room.findById(targetExam.room_id);
+    const liveRoom = targetExam.room_id ? await Room.findById(targetExam.room_id) : null;
+    // Use the frozen room_snapshot stored on the exam at creation time
+    const room = getEffectiveRoomLayout(targetExam, liveRoom);
     if (!room) return res.redirect('/?active_tab=exams');
+
+    // Group only parallel exams that share the same room, exam_date, and start_time
+    let roomExams = [targetExam];
+    if (targetExam.room_id) {
+      roomExams = await Exam.find({
+        room_id: targetExam.room_id,
+        exam_date: targetExam.exam_date,
+        start_time: targetExam.start_time
+      });
+      if (roomExams.length === 0) roomExams = [targetExam];
+    }
 
     const examIds = roomExams.map(e => e._id);
     await Seating.deleteMany({ exam_id: { $in: examIds } });
@@ -1546,7 +1625,7 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
             await Seating.create({
               student_id: student._id,
               exam_id: exam._id,
-              room_id: room._id,
+              room_id: targetExam.room_id,
               row_no: r,
               column_no: c,
               seat_no: seatNo
@@ -1570,12 +1649,23 @@ app.get('/api/exam_seat_layout/:exam_id', isAuthenticated, isAdmin, async (req, 
   try {
     const exam = await Exam.findById(examId).populate('room_id');
     if (!exam) return res.status(404).json({ success: false, message: 'Exam not found.' });
-    if (!exam.room_id) return res.status(400).json({ success: false, message: 'No room assigned to this exam.' });
 
-    const room = exam.room_id;
+    // Use the frozen room_snapshot stored on the exam so later room edits don't alter old exams
+    const room = getEffectiveRoomLayout(exam, exam.room_id);
+    if (!room) return res.status(400).json({ success: false, message: 'No room layout found for this exam.' });
 
-    // Fetch all seating records for this room so admin sees the complete room layout
-    const roomExams = await Exam.find({ room_id: room._id });
+    // Fetch parallel exams happening in the same room at the same date & start_time
+    let roomExams = [exam];
+    if (exam.room_id) {
+      const rawRoomId = exam.room_id._id || exam.room_id;
+      roomExams = await Exam.find({
+        room_id: rawRoomId,
+        exam_date: exam.exam_date,
+        start_time: exam.start_time
+      });
+      if (roomExams.length === 0) roomExams = [exam];
+    }
+
     const roomExamIds = roomExams.map(e => e._id);
     const examMap = {};
     roomExams.forEach(e => {
@@ -1620,7 +1710,7 @@ app.get('/api/exam_seat_layout/:exam_id', isAuthenticated, isAdmin, async (req, 
         end_time: exam.end_time
       },
       room: {
-        id: room._id.toString(),
+        id: room._id ? room._id.toString() : '',
         room_no: room.room_no,
         columns: room.columns,
         rows: room.rows,
@@ -1640,14 +1730,28 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
   const examId = req.params.exam_id;
   try {
     const exam = await Exam.findById(examId).populate('room_id');
-    if (!exam || !exam.room_id) {
-      return res.status(404).send('Exam or Room not found');
+    if (!exam) {
+      return res.status(404).send('Exam not found');
     }
 
-    const room = exam.room_id;
-    const roomExams = await Exam.find({ room_id: room._id });
-    const roomExamIds = roomExams.map(e => e._id);
+    // Use frozen room_snapshot from exam creation time
+    const room = getEffectiveRoomLayout(exam, exam.room_id);
+    if (!room) {
+      return res.status(404).send('Room layout not found for this exam');
+    }
 
+    let roomExams = [exam];
+    if (exam.room_id) {
+      const rawRoomId = exam.room_id._id || exam.room_id;
+      roomExams = await Exam.find({
+        room_id: rawRoomId,
+        exam_date: exam.exam_date,
+        start_time: exam.start_time
+      });
+      if (roomExams.length === 0) roomExams = [exam];
+    }
+
+    const roomExamIds = roomExams.map(e => e._id);
     const seatingDocs = await Seating.find({ exam_id: { $in: roomExamIds } }).populate('student_id');
     const assignedMap = {};
 
@@ -1679,7 +1783,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
     const margin = 25;
     const usableWidth = pageWidth - margin * 2;
 
-    // Header Info
     const formattedDate = exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : 'N/A';
     doc.fontSize(15).fillColor('#1e3a8a').font('Helvetica-Bold')
       .text(`ROOM ${room.room_no} - GRAPHICAL SEAT LAYOUT`, margin, 20, { align: 'center', width: usableWidth });
@@ -1687,7 +1790,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
     doc.fontSize(10).fillColor('#334155').font('Helvetica')
       .text(`Exam: ${exam.subject} (${exam.branch || 'All'} - Sem ${exam.semester || 'N/A'}) | Date: ${formattedDate} | Time: ${exam.start_time} - ${exam.end_time}`, margin, 40, { align: 'center', width: usableWidth });
 
-    // Blackboard Banner
     doc.roundedRect(margin + 120, 56, usableWidth - 240, 18, 4).fill('#1e293b');
     doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold')
       .text('BLACKBOARD / TEACHER DESK (FRONT)', margin + 120, 61, { align: 'center', width: usableWidth - 240 });
@@ -1711,7 +1813,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
       const colX = margin + (c - 1) * (colWidth + colGap);
       const rowsInCol = (room.column_rows && room.column_rows[c - 1]) ? room.column_rows[c - 1] : (room.rows || 1);
 
-      // Column Header Box
       doc.roundedRect(colX, startY, colWidth, colHeaderH, 3).fillAndStroke('#eef2ff', '#cbd5e1');
       doc.fillColor('#1e3a8a').fontSize(9).font('Helvetica-Bold')
         .text(`Column ${c}`, colX, startY + 5, { width: colWidth, align: 'center' });
@@ -1723,7 +1824,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
       for (let r = 1; r <= rowsInCol; r++) {
         const rowY = startY + colHeaderH + 5 + (r - 1) * (benchH + rowGap);
 
-        // Row Label (R1, R2...)
         doc.roundedRect(colX, rowY, labelW, benchH, 3).fill('#f59e0b');
         doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold')
           .text(`R${r}`, colX, rowY + (benchH / 2) - 3, { width: labelW, align: 'center' });
@@ -1755,7 +1855,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
             doc.fillColor(textClr).fontSize(6.5).font('Helvetica')
               .text(`S${s}: Disabled`, seatX + 2, rowY + (benchH / 2) - 3, { width: seatW - 4, align: 'center' });
           } else if (assigned) {
-            // Display FULL Registration Number inside the seat box
             const regFontSize = seatW < 65 ? 6 : 7.5;
             doc.fillColor(textClr).fontSize(regFontSize).font('Helvetica-Bold')
               .text(assigned.reg_no, seatX + 2, rowY + 3, { width: seatW - 4, align: 'center', lineBreak: false });

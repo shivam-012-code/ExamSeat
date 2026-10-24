@@ -39,6 +39,19 @@ const ExamSchema = new mongoose.Schema({
   branch: { type: String, trim: true },
   semester: { type: Number },
   room_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: null },
+  // Snapshot of the room's seat layout at the exact moment this exam was created
+  room_snapshot: {
+    room_no: { type: String, default: '' },
+    rows: { type: Number, default: 0 },
+    columns: { type: Number, default: 0 },
+    column_rows: [{ type: Number }],
+    active_seats: [{ type: String }],
+    seat_colors: [{
+      seat_key: { type: String },
+      color: { type: String, default: 'color1' }
+    }],
+    capacity: { type: Number, default: 0 }
+  },
   seat_color: { type: String, default: 'color1' },
   start_reg_no: { type: String, trim: true, default: '' },
   stop_reg_no: { type: String, trim: true, default: '' },
@@ -80,8 +93,6 @@ const PyqProgressSchema = new mongoose.Schema({
   is_completed: { type: Boolean, default: false }
 });
 PyqProgressSchema.index({ student_id: 1, pyq_id: 1 }, { unique: true });
-
-// --- NEW MCQ SCHEMAS ---
 
 const McqSchema = new mongoose.Schema({
   branch: { type: String, required: true, trim: true },
