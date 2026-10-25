@@ -1327,6 +1327,91 @@
         </main>
     </div>
 
+    <% if (user.role !== 'admin') { %>
+        <!-- FLOATING AI CHATBOT BUTTON (BOTTOM-RIGHT) -->
+        <button type="button" class="ai-fab-btn" onclick="toggleAiChatbotPopup()" title="Open AI Study Assistant">
+            <i class="fa-solid fa-robot" id="aiFabIcon"></i>
+        </button>
+
+        <!-- FLOATING AI CHATBOT WINDOW (BOTTOM-RIGHT) -->
+        <div id="aiFloatingPopup" class="ai-floating-panel hidden">
+            <!-- Header -->
+            <div class="ai-floating-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-robot" style="font-size: 18px;"></i>
+                    <div>
+                        <div style="font-weight: bold; font-size: 14px;">AI Study Assistant</div>
+                        <div style="font-size: 10px; opacity: 0.85;">Select Portal Doc or Upload Photo</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-red" style="padding: 4px 8px; font-size: 11px;" onclick="clearAiChat()" title="Clear Chat">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <button type="button" style="background: rgba(255,255,255,0.2); padding: 4px 9px; font-size: 12px;" onclick="toggleAiChatbotPopup()" title="Minimize">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Document / Photo Selector Bar -->
+            <div style="background: #faf5ff; border-bottom: 1px solid #e9d5ff; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <!-- 1. Select Portal Documents shown to Student -->
+                    <select id="aiPortalDocSelect" class="select-input" style="flex: 1; padding: 6px; font-size: 11px;" onchange="onPortalDocChange()">
+                        <option value="">📚 Select Portal PYQ / Paper...</option>
+                        <% if (studentPyqs && studentPyqs.length > 0) { %>
+                            <optgroup label="My PYQs & Questions">
+                                <% studentPyqs.forEach(p => { %>
+                                    <option value="<%= p.file_url %>">PYQ: <%= p.title %> (<%= p.subject %>)</option>
+                                <% }) %>
+                            </optgroup>
+                        <% } %>
+                        <% if (studentExamsWithMarks && studentExamsWithMarks.length > 0) { %>
+                            <optgroup label="My Exam Question Papers">
+                                <% studentExamsWithMarks.forEach(e => { if (e.question_paper) { %>
+                                    <option value="<%= e.question_paper %>">Exam: <%= e.subject %> (<%= e.exam_date %>)</option>
+                                <% } }) %>
+                            </optgroup>
+                        <% } %>
+                    </select>
+
+                    <!-- 2. Upload Custom Photo / PDF Button -->
+                    <label for="aiCustomFileInput" style="background: #7e22ce; color: white; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; white-space: nowrap;" title="Upload Photo or PDF">
+                        <i class="fa-solid fa-camera"></i> Upload
+                    </label>
+                    <input type="file" id="aiCustomFileInput" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display: none;" onchange="onCustomFileChange()">
+                </div>
+
+                <!-- Attached File Indicator -->
+                <div id="aiFileBadge" class="hidden" style="background: #f3e8ff; border: 1px solid #c084fc; padding: 4px 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; font-weight: bold; color: #6b21a8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px;">
+                        <i class="fa-solid fa-paperclip"></i> <span id="aiFileBadgeName"></span>
+                    </span>
+                    <button type="button" class="btn-red" style="padding: 1px 6px; font-size: 10px;" onclick="resetAiFiles()">✕</button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div class="chat-messages" id="aiChatMessages" style="flex: 1; padding: 12px; overflow-y: auto; background: #f8fafc;">
+                <div class="chat-bubble chat-bubble-admin" style="max-width: 88%; background: #f3e8ff; border-color: #d8b4fe;">
+                    <strong style="color: #6b21a8; font-size: 11px;"><i class="fa-solid fa-robot"></i> AI Study Bot</strong>
+                    <div style="margin-top: 4px; font-size: 12px;">
+                        Hi <b><%= studentInfo ? studentInfo.name : user.username %></b>! Upar se apna koi bhi <b>PYQ / Exam Paper</b> select karein ya <b>Upload</b> button se photo/PDF attach karke command dein.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="chat-input-bar" style="padding: 8px 10px;">
+                <input id="aiPromptInput" placeholder="Ask or give a command..." style="flex: 1; padding: 8px 10px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px;" onkeypress="if(event.key==='Enter') sendAiCommand()">
+                <button type="button" id="aiSendBtn" class="btn-blue bg-purple" style="padding: 8px 12px;" onclick="sendAiCommand()">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    <% } %>
+
     <!-- NEW EXAM SEAT LAYOUT MODAL (ADMIN VIEW + PDF DOWNLOAD) -->
     <div id="examSeatLayoutModal" class="modal hidden">
         <div class="modal-content" style="width: 94%; max-width: 1120px; max-height: 92vh; overflow-y: auto;">
@@ -3094,6 +3179,141 @@
             const totalCapacity = totalBenches * 2;
             summaryDiv.innerHTML = `💡 Total Benches: ${totalBenches} | Total Room Capacity: ${totalCapacity} Students (2 per bench)`;
             summaryDiv.style.display = 'block';
+        }
+
+        // --- FLOATING AI STUDY CHATBOT FUNCTIONS ---
+        let aiChatHistory = [];
+
+        function toggleAiChatbotPopup() {
+            const popup = document.getElementById('aiFloatingPopup');
+            const icon = document.getElementById('aiFabIcon');
+            if (!popup) return;
+
+            if (popup.classList.contains('hidden')) {
+                popup.classList.remove('hidden');
+                if (icon) icon.className = 'fa-solid fa-xmark';
+                const inp = document.getElementById('aiPromptInput');
+                if (inp) inp.focus();
+            } else {
+                popup.classList.add('hidden');
+                if (icon) icon.className = 'fa-solid fa-robot';
+            }
+        }
+
+        function onPortalDocChange() {
+            const sel = document.getElementById('aiPortalDocSelect');
+            const fileInp = document.getElementById('aiCustomFileInput');
+            if (sel.value) {
+                fileInp.value = '';
+                document.getElementById('aiFileBadgeName').innerText = sel.options[sel.selectedIndex].text;
+                document.getElementById('aiFileBadge').classList.remove('hidden');
+            } else {
+                document.getElementById('aiFileBadge').classList.add('hidden');
+            }
+        }
+
+        function onCustomFileChange() {
+            const sel = document.getElementById('aiPortalDocSelect');
+            const fileInp = document.getElementById('aiCustomFileInput');
+            if (fileInp.files && fileInp.files[0]) {
+                sel.value = '';
+                document.getElementById('aiFileBadgeName').innerText = fileInp.files[0].name;
+                document.getElementById('aiFileBadge').classList.remove('hidden');
+            } else {
+                document.getElementById('aiFileBadge').classList.add('hidden');
+            }
+        }
+
+        function resetAiFiles() {
+            document.getElementById('aiPortalDocSelect').value = '';
+            document.getElementById('aiCustomFileInput').value = '';
+            document.getElementById('aiFileBadge').classList.add('hidden');
+        }
+
+        async function sendAiCommand() {
+            const promptEl = document.getElementById('aiPromptInput');
+            const selEl = document.getElementById('aiPortalDocSelect');
+            const fileEl = document.getElementById('aiCustomFileInput');
+            const msgBox = document.getElementById('aiChatMessages');
+            const sendBtn = document.getElementById('aiSendBtn');
+
+            const prompt = promptEl.value.trim();
+            const portalUrl = selEl ? selEl.value : '';
+            const customFile = (fileEl && fileEl.files && fileEl.files[0]) ? fileEl.files[0] : null;
+
+            if (!prompt && !portalUrl && !customFile) {
+                alert('Please enter a command or select/upload a document.');
+                return;
+            }
+
+            const fileLabel = portalUrl ? selEl.options[selEl.selectedIndex].text : (customFile ? customFile.name : '');
+
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble chat-bubble-me';
+            userBubble.style.maxWidth = '85%';
+            userBubble.innerHTML = `
+                ${fileLabel ? `<div style="font-size:10px; background:rgba(255,255,255,0.2); padding:3px 6px; border-radius:4px; margin-bottom:4px;"><i class="fa-solid fa-paperclip"></i> ${fileLabel}</div>` : ''}
+                <div style="font-size:12px;">${prompt || 'Please solve and explain this document.'}</div>
+            `;
+            msgBox.appendChild(userBubble);
+
+            const loadBubble = document.createElement('div');
+            loadBubble.className = 'chat-bubble chat-bubble-admin';
+            loadBubble.style.fontSize = '12px';
+            loadBubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Following your command...`;
+            msgBox.appendChild(loadBubble);
+            msgBox.scrollTop = msgBox.scrollHeight;
+
+            promptEl.value = '';
+            sendBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('prompt', prompt);
+                formData.append('portal_file_url', portalUrl);
+                formData.append('history', JSON.stringify(aiChatHistory));
+                if (customFile) formData.append('custom_file', customFile);
+
+                const res = await fetch('/api/ai/chat', { method: 'POST', body: formData });
+                const data = await res.json();
+                loadBubble.remove();
+                sendBtn.disabled = false;
+
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'chat-bubble chat-bubble-admin';
+                aiBubble.style.maxWidth = '90%';
+
+                if (data.success) {
+                    const formatted = data.reply
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+
+                    aiBubble.innerHTML = `<strong style="color:#6b21a8; font-size:11px;"><i class="fa-solid fa-robot"></i> AI Study Bot</strong><div style="margin-top:4px; font-size:12px; line-height:1.5;">${formatted}</div>`;
+                    aiChatHistory.push({ role: 'user', text: prompt || `Document: ${fileLabel}` });
+                    aiChatHistory.push({ role: 'model', text: data.reply });
+                } else {
+                    aiBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">Error: ${data.message}</span>`;
+                }
+
+                msgBox.appendChild(aiBubble);
+                msgBox.scrollTop = msgBox.scrollHeight;
+            } catch (err) {
+                loadBubble.remove();
+                sendBtn.disabled = false;
+                alert('Server error connecting to AI.');
+            }
+        }
+
+        function clearAiChat() {
+            aiChatHistory = [];
+            resetAiFiles();
+            document.getElementById('aiChatMessages').innerHTML = `
+                <div class="chat-bubble chat-bubble-admin" style="max-width: 88%; background: #f3e8ff; border-color: #d8b4fe;">
+                    <strong style="color: #6b21a8; font-size: 11px;"><i class="fa-solid fa-robot"></i> AI Study Bot</strong>
+                    <div style="margin-top: 4px; font-size: 12px;">Chat cleared! Select a document or upload a photo and give your command.</div>
+                </div>
+            `;
         }
 
         document.addEventListener("DOMContentLoaded", function () {

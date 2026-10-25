@@ -735,6 +735,59 @@ hr {
     border-top: 1px solid #cbd5e1;
 }
 
+/* Floating Bottom-Right AI Chatbot Styles */
+.ai-fab-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7e22ce, #2563eb);
+    color: white;
+    border: none;
+    box-shadow: 0 6px 20px rgba(126, 34, 206, 0.45);
+    cursor: pointer;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ai-fab-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 25px rgba(126, 34, 206, 0.65);
+}
+
+.ai-floating-panel {
+    position: fixed;
+    bottom: 95px;
+    right: 25px;
+    width: 390px;
+    max-width: calc(100vw - 30px);
+    height: 540px;
+    max-height: calc(100vh - 120px);
+    background: #ffffff;
+    border: 2px solid #d8b4fe;
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ai-floating-header {
+    background: linear-gradient(135deg, #6b21a8, #1e3a8a);
+    color: white;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 @media(max-width: 750px) {
     .container {
         flex-direction: column;
