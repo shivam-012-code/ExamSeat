@@ -3275,7 +3275,15 @@
                 if (customFile) formData.append('custom_file', customFile);
 
                 const res = await fetch('/api/ai/chat', { method: 'POST', body: formData });
-                const data = await res.json();
+                const rawText = await res.text();
+                let data;
+
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    throw new Error('Route /api/ai/chat not found or session expired. Please restart server (node server.js) and refresh page.');
+                }
+
                 loadBubble.remove();
                 sendBtn.disabled = false;
 
@@ -3293,15 +3301,22 @@
                     aiChatHistory.push({ role: 'user', text: prompt || `Document: ${fileLabel}` });
                     aiChatHistory.push({ role: 'model', text: data.reply });
                 } else {
-                    aiBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">Error: ${data.message}</span>`;
+                    aiBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">⚠️ AI Error: ${data.message}</span>`;
                 }
 
                 msgBox.appendChild(aiBubble);
                 msgBox.scrollTop = msgBox.scrollHeight;
             } catch (err) {
+                console.error('AI Chat Fetch Error:', err);
                 loadBubble.remove();
                 sendBtn.disabled = false;
-                alert('Server error connecting to AI.');
+
+                const errBubble = document.createElement('div');
+                errBubble.className = 'chat-bubble chat-bubble-admin';
+                errBubble.style.maxWidth = '90%';
+                errBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">⚠️ Connection Error: ${err.message}</span>`;
+                msgBox.appendChild(errBubble);
+                msgBox.scrollTop = msgBox.scrollHeight;
             }
         }
 

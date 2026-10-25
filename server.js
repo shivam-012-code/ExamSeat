@@ -1520,8 +1520,7 @@ app.post('/edit_exam/:id', isAuthenticated, isAdmin, async (req, res) => {
       end_time: end_time
     };
 
-    // Only capture a new room snapshot if the admin switched to a different room
-    // or if this old exam didn't have a snapshot yet
+    // Only capture a new room snapshot if the admin switched to a different room or if this old exam didn't have a snapshot yet
     const prevRoomId = existingExam.room_id ? existingExam.room_id.toString() : '';
     const newRoomId = room_id ? room_id.toString() : '';
     const hasExistingSnapshot = existingExam.room_snapshot && existingExam.room_snapshot.columns > 0;
@@ -1957,6 +1956,13 @@ app.get('/export_seating_pdf/:exam_id', isAuthenticated, async (req, res) => {
     await doc.table(table);
     doc.end();
   } catch (err) { res.status(500).send('PDF Generation Error'); }
+});
+
+// Gemini API connection
+app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), async (req, res) => {
+  const { prompt, portal_file_url, history } = req.body;
+  
+  const apiKey = process.env.GEMINI_API_KEY;
 });
 
 initDB()
