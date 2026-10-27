@@ -8,6 +8,8 @@ const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit-table');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+
 const {
   initDB, User, Student, Room, Exam, Seating, Mark, Pyq, PyqProgress,
   Mcq, McqVote, ChatMessage, Poll, PollVote, Otp
@@ -1425,8 +1427,6 @@ app.post('/update_room_seats/:id', isAuthenticated, isAdmin, async (req, res) =>
   }
 
   try {
-    // Only updates the Room template for FUTURE exam creations.
-    // Existing exams already have their own room_snapshot frozen!
     await Room.findByIdAndUpdate(roomId, { active_seats: seatsArray, seat_colors: seatColorsArray });
   } catch (err) { console.error(err); }
   res.redirect('/?active_tab=rooms');
@@ -1443,7 +1443,7 @@ app.post('/delete_room/:id', isAuthenticated, isAdmin, async (req, res) => {
   res.redirect('/?active_tab=rooms');
 });
 
-// ---------------- EXAM MANAGEMENT (WITH FROZEN ROOM LAYOUT SNAPSHOT) ----------------
+// ---------------- EXAM MANAGEMENT ----------------
 
 app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
   const {
@@ -1463,7 +1463,6 @@ app.post('/add_exam', isAuthenticated, isAdmin, async (req, res) => {
     const isDualExam = (second_exam_enabled === 'true' && subject2 && subject2.trim() !== '');
     const groupId = isDualExam ? ('GRP_' + Date.now()) : null;
 
-    // Agar dual exam hai to Secondary exam pehle create karenge taaki sort({ _id: -1 }) karne par Primary upar aur Secondary uske theek niche aaye
     if (isDualExam) {
       await Exam.create({
         subject: subject2.trim(),
@@ -1520,7 +1519,6 @@ app.post('/edit_exam/:id', isAuthenticated, isAdmin, async (req, res) => {
       end_time: end_time
     };
 
-    // Only capture a new room snapshot if the admin switched to a different room or if this old exam didn't have a snapshot yet
     const prevRoomId = existingExam.room_id ? existingExam.room_id.toString() : '';
     const newRoomId = room_id ? room_id.toString() : '';
     const hasExistingSnapshot = existingExam.room_snapshot && existingExam.room_snapshot.columns > 0;
@@ -1556,11 +1554,9 @@ app.get('/generate_seating/:exam_id', isAuthenticated, isAdmin, async (req, res)
     if (!targetExam) return res.redirect('/?active_tab=exams');
 
     const liveRoom = targetExam.room_id ? await Room.findById(targetExam.room_id) : null;
-    // Use the frozen room_snapshot stored on the exam at creation time
     const room = getEffectiveRoomLayout(targetExam, liveRoom);
     if (!room) return res.redirect('/?active_tab=exams');
 
-    // Group only parallel exams that share the same room, exam_date, and start_time
     let roomExams = [targetExam];
     if (targetExam.room_id) {
       roomExams = await Exam.find({
@@ -1656,11 +1652,9 @@ app.get('/api/exam_seat_layout/:exam_id', isAuthenticated, isAdmin, async (req, 
     const exam = await Exam.findById(examId).populate('room_id');
     if (!exam) return res.status(404).json({ success: false, message: 'Exam not found.' });
 
-    // Use the frozen room_snapshot stored on the exam so later room edits don't alter old exams
     const room = getEffectiveRoomLayout(exam, exam.room_id);
     if (!room) return res.status(400).json({ success: false, message: 'No room layout found for this exam.' });
 
-    // Fetch parallel exams happening in the same room at the same date & start_time
     let roomExams = [exam];
     if (exam.room_id) {
       const rawRoomId = exam.room_id._id || exam.room_id;
@@ -1740,7 +1734,6 @@ app.get('/download_seat_layout_pdf/:exam_id', isAuthenticated, isAdmin, async (r
       return res.status(404).send('Exam not found');
     }
 
-    // Use frozen room_snapshot from exam creation time
     const room = getEffectiveRoomLayout(exam, exam.room_id);
     if (!room) {
       return res.status(404).send('Room layout not found for this exam');
@@ -1969,12 +1962,103 @@ function getMimeTypeFromExt(filePath) {
   return 'application/octet-stream';
 }
 
+const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function callGeminiHttps(method, apiPath, bodyObj = null) {
+  return new Promise((resolve, reject) => {
+    const bodyString = bodyObj ? JSON.stringify(bodyObj) : null;
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      port: 443,
+      path: apiPath,
+      method: method,
+      family: 4, // Force IPv4 to prevent network/fetch failures
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (bodyString) {
+      options.headers['Content-Length'] = Buffer.byteLength(bodyString);
+    }
+
+    const req = https.request(options, (res) => {
+      let rawData = '';
+      res.on('data', (chunk) => { rawData += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(rawData);
+          resolve({ status: res.statusCode, data: parsed });
+        } catch (err) {
+          resolve({ status: res.statusCode, data: { error: { message: 'Invalid JSON from Google API' } } });
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+
+    // 120 seconds timeout for large files/images
+    req.setTimeout(120000, () => {
+      req.destroy(new Error('Request timed out (120s). File ya image bahut badi hai, kripya choti file try karein.'));
+    });
+
+    if (bodyString) req.write(bodyString);
+    req.end();
+  });
+}
+
+let cachedWorkingModels = null;
+async function getWorkingModelsList(apiKey) {
+  if (cachedWorkingModels && cachedWorkingModels.length > 0) return cachedWorkingModels;
+
+  const priorityList = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-flash-latest',
+    'gemini-1.5-flash'
+  ];
+
+  try {
+    const res = await callGeminiHttps('GET', `/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+    if (res.status === 200 && res.data && Array.isArray(res.data.models)) {
+      const available = res.data.models
+        .filter(m =>
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent') &&
+          !m.name.includes('embedding') &&
+          !m.name.includes('imagen') &&
+          !m.name.includes('veo') &&
+          !m.name.includes('tts') &&
+          !m.name.includes('aqa')
+        )
+        .map(m => m.name.replace('models/', ''));
+
+      available.sort((a, b) => {
+        const aFlash = a.includes('flash') ? 1 : 0;
+        const bFlash = b.includes('flash') ? 1 : 0;
+        if (aFlash !== bFlash) return bFlash - aFlash;
+        return b.localeCompare(a, undefined, { numeric: true });
+      });
+
+      if (available.length > 0) {
+        cachedWorkingModels = [...new Set([...priorityList.filter(p => available.includes(p)), ...available])];
+        return cachedWorkingModels;
+      }
+    }
+  } catch (err) {
+    console.error('Model list fetch warning:', err.message);
+  }
+
+  return priorityList;
+}
+
 app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), async (req, res) => {
   const { prompt, portal_file_url, history } = req.body;
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  const apiKey = (process.env.GEMINI_API_KEY || '').replace(/["']/g, '').trim();
 
   if (!apiKey) {
-    return res.status(500).json({
+    return res.json({
       success: false,
       message: 'GEMINI_API_KEY .env file me nahi mila. Please .env save karke server restart karein.'
     });
@@ -1996,31 +2080,33 @@ app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), as
         fileBase64 = fileBuffer.toString('base64');
         fileMimeType = getMimeTypeFromExt(fullPath);
       } else {
-        return res.status(404).json({ success: false, message: 'Selected portal document server par nahi mila.' });
+        return res.json({ success: false, message: 'Selected portal document server par nahi mila.' });
       }
     }
 
     if (fileMimeType === 'application/octet-stream') {
-      return res.status(400).json({
+      return res.json({
         success: false,
         message: 'AI sirf PDF aur Images (.png, .jpg, .webp) read kar sakta hai.'
       });
     }
 
-    let contents = [];
+    let historyContext = '';
     if (history) {
       try {
         const parsed = JSON.parse(history);
-        if (Array.isArray(parsed)) {
-          contents = parsed.slice(-6).map(h => ({
-            role: h.role === 'model' ? 'model' : 'user',
-            parts: [{ text: String(h.text || '') }]
-          }));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          historyContext = 'Previous Conversation:\n' + parsed.slice(-4).map(h =>
+            `${h.role === 'model' ? 'AI' : 'Student'}: ${h.text}`
+          ).join('\n') + '\n\n';
         }
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
     }
+
+    const finalPromptText =
+      `You are a helpful AI Study Assistant inside the ExamSeat Student Portal. Follow the student's command carefully.\n\n` +
+      historyContext +
+      `Student Command: ${prompt && prompt.trim() ? prompt.trim() : 'Please read this attached document/image and solve or explain all questions step-by-step.'}`;
 
     const userParts = [];
     if (fileBase64 && fileMimeType) {
@@ -2031,52 +2117,55 @@ app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), as
         }
       });
     }
-    userParts.push({
-      text: prompt && prompt.trim()
-        ? prompt.trim()
-        : 'Please read this document/image and solve or explain it step-by-step.'
-    });
+    userParts.push({ text: finalPromptText });
 
-    contents.push({ role: 'user', parts: userParts });
+    const payload = {
+      contents: [
+        {
+          role: 'user',
+          parts: userParts
+        }
+      ]
+    };
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{
-              text: 'You are a helpful AI Study Assistant inside the ExamSeat Student Portal. Strictly follow the command given by the student for the uploaded or selected document/photo.'
-            }]
-          },
-          contents: contents
-        })
+    const modelsToTry = await getWorkingModelsList(apiKey);
+    let replyText = null;
+    let lastErrorMsg = 'All AI models are currently busy. Please try again in a few seconds.';
+
+    for (const modelName of modelsToTry) {
+      const apiPath = `/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const result = await callGeminiHttps('POST', apiPath, payload);
+
+      if (result.status >= 200 && result.status < 300) {
+        replyText = result.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (replyText) {
+          console.log(`[AI Chat] Answered using model: ${modelName}`);
+          break;
+        }
+      } else {
+        const errMsg = result.data?.error?.message || `HTTP ${result.status}`;
+        lastErrorMsg = errMsg;
+        console.warn(`[AI Fallback] ${modelName} (${result.status}): ${errMsg}`);
+
+        if (errMsg.toLowerCase().includes('api key not valid')) {
+          return res.json({ success: false, message: 'Aapki GEMINI_API_KEY invalid hai. Please .env check karein.' });
+        }
+
+        await waitMs(800);
       }
-    );
+    }
 
-    const data = await response.json();
-    if (!response.ok) {
-      return res.status(500).json({
+    if (!replyText) {
+      return res.json({
         success: false,
-        message: (data && data.error && data.error.message) ? data.error.message : 'AI API request failed.'
+        message: lastErrorMsg
       });
     }
 
-    const reply = (
-      data &&
-      data.candidates &&
-      data.candidates[0] &&
-      data.candidates[0].content &&
-      data.candidates[0].content.parts &&
-      data.candidates[0].content.parts[0] &&
-      data.candidates[0].content.parts[0].text
-    ) ? data.candidates[0].content.parts[0].text : 'No response generated.';
-
-    res.json({ success: true, reply: reply });
+    return res.json({ success: true, reply: replyText });
   } catch (err) {
-    console.error('AI Chatbot Error:', err);
-    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+    console.error('AI Chatbot Route Exception:', err);
+    return res.json({ success: false, message: 'Server Error: ' + err.message });
   }
 });
 

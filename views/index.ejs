@@ -3260,7 +3260,7 @@
             const loadBubble = document.createElement('div');
             loadBubble.className = 'chat-bubble chat-bubble-admin';
             loadBubble.style.fontSize = '12px';
-            loadBubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Following your command...`;
+            loadBubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AI is analyzing & solving...`;
             msgBox.appendChild(loadBubble);
             msgBox.scrollTop = msgBox.scrollHeight;
 
@@ -3280,8 +3280,8 @@
 
                 try {
                     data = JSON.parse(rawText);
-                } catch (parseErr) {
-                    throw new Error('Route /api/ai/chat not found or session expired. Please restart server (node server.js) and refresh page.');
+                } catch (e) {
+                    throw new Error('Session expired or server not restarted. Please refresh the page.');
                 }
 
                 loadBubble.remove();
@@ -3307,14 +3307,11 @@
                 msgBox.appendChild(aiBubble);
                 msgBox.scrollTop = msgBox.scrollHeight;
             } catch (err) {
-                console.error('AI Chat Fetch Error:', err);
                 loadBubble.remove();
                 sendBtn.disabled = false;
-
                 const errBubble = document.createElement('div');
                 errBubble.className = 'chat-bubble chat-bubble-admin';
-                errBubble.style.maxWidth = '90%';
-                errBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">⚠️ Connection Error: ${err.message}</span>`;
+                errBubble.innerHTML = `<span style="color:#dc2626; font-weight:bold; font-size:12px;">⚠️ Error: ${err.message}</span>`;
                 msgBox.appendChild(errBubble);
                 msgBox.scrollTop = msgBox.scrollHeight;
             }
