@@ -730,18 +730,13 @@ th {
     font-style: normal;
 }
 
-hr {
-    border: none;
-    border-top: 1px solid #cbd5e1;
-}
-
 /* Floating Bottom-Right AI Chatbot Styles */
 .ai-fab-btn {
     position: fixed;
-    bottom: 25px;
-    right: 25px;
-    width: 60px;
-    height: 60px;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #7e22ce, #2563eb);
     color: white;
@@ -752,23 +747,22 @@ hr {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 24px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .ai-fab-btn:hover {
     transform: scale(1.08);
-    box-shadow: 0 8px 25px rgba(126, 34, 206, 0.65);
 }
 
 .ai-floating-panel {
     position: fixed;
-    bottom: 95px;
-    right: 25px;
-    width: 390px;
-    max-width: calc(100vw - 30px);
-    height: 540px;
-    max-height: calc(100vh - 120px);
+    bottom: 85px;
+    right: 20px;
+    width: 380px;
+    max-width: calc(100vw - 24px);
+    height: 520px;
+    max-height: calc(100vh - 110px);
     background: #ffffff;
     border: 2px solid #d8b4fe;
     border-radius: 14px;
@@ -788,16 +782,175 @@ hr {
     align-items: center;
 }
 
-@media(max-width: 750px) {
-    .container {
-        flex-direction: column;
+@media (max-width: 768px) {
+    .ai-fab-btn {
+        bottom: 14px;
+        right: 14px;
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
     }
 
+    .ai-floating-panel {
+        bottom: 70px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-width: none;
+        height: 72vh;
+    }
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #cbd5e1;
+}
+
+/* ---------------- MOBILE & TABLET RESPONSIVE FIXES ---------------- */
+html,
+body {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+    /* Half-half background problem ko 100% fix karega */
+    background: #f4f6f9;
+}
+
+main {
+    flex: 1;
+    padding: 25px;
+    min-width: 0;
+    /* Flex container ko screen se bahar jane se rokega */
+    width: 100%;
+}
+
+section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    width: 100%;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: 12px 15px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    header h2 {
+        font-size: 18px;
+    }
+
+    .user-info {
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .logout-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .container {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    /* Aside buttons ko modern horizontal scrollable app-bar banana */
     aside {
         width: 100%;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        white-space: nowrap;
+        background: #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    aside::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    aside::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 4px;
+    }
+
+    aside button {
+        width: auto;
+        flex-shrink: 0;
+        margin-bottom: 0;
+        padding: 8px 14px;
+        font-size: 13px;
+        text-align: center;
+        border-radius: 20px;
+    }
+
+    main {
+        padding: 12px;
+    }
+
+    section {
+        padding: 15px 12px;
+    }
+
+    /* Dashboard Cards Mobile Fix */
+    .cards {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .card {
+        width: 100%;
+        padding: 18px;
     }
 
     .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Tables ko mobile ke andar scrollable rakhna taaki background half na ho */
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th,
+    td {
+        padding: 9px 10px;
+        font-size: 12px;
+    }
+
+    /* Chat & Polls 2-column grid ko mobile par 1-column karna */
+    #adminChatWrapper>div[style*="grid-template-columns"],
+    #student_chat>div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+
+    /* Chat container me niche space aur send bar par padding taaki AI button kabhi overlap na kare */
+    .chat-container {
+        height: 390px;
+        margin-bottom: 65px;
+    }
+
+    /* Modal popups ko mobile screen ke hisab se fit karna */
+    .modal-content {
+        width: 95% !important;
+        padding: 18px 14px !important;
+        max-height: 88vh !important;
+        overflow-y: auto;
     }
 }

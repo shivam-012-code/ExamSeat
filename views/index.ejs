@@ -2889,6 +2889,18 @@
             const target = document.getElementById(sectionName);
             if (target) target.classList.remove("hidden");
 
+            // Chat section me Send button ke upar AI button overlap na kare:
+            const aiFabBtn = document.querySelector('.ai-fab-btn');
+            const aiPopup = document.getElementById('aiFloatingPopup');
+            if (aiFabBtn) {
+                if (sectionName === 'student_chat') {
+                    aiFabBtn.style.display = 'none';
+                    if (aiPopup) aiPopup.classList.add('hidden');
+                } else {
+                    aiFabBtn.style.display = 'flex';
+                }
+            }
+
             if (sectionName === 'student_chat') {
                 initStudentChat();
             } else if (sectionName === 'admin_chat') {
