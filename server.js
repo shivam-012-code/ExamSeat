@@ -98,8 +98,14 @@ const storage = multer.diskStorage({
   }
 });
 
-const uploadDisk = multer({ storage: storage });
-const uploadMemory = multer({ storage: multer.memoryStorage() });
+const uploadDisk = multer({
+  storage: storage,
+  limits: { fileSize: 30 * 1024 * 1024 } // 30MB limit
+});
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 30 * 1024 * 1024, fieldSize: 30 * 1024 * 1024 } // 30MB limit
+});
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -109,8 +115,8 @@ function shuffleArray(array) {
   return array;
 }
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
