@@ -2106,17 +2106,18 @@ app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), as
             `${h.role === 'model' ? 'AI' : 'Student'}: ${h.text}`
           ).join('\n') + '\n\n';
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const finalPromptText =
-  `You are an expert AI Study Assistant inside the ExamSeat Student Portal. Follow the student's command carefully and explain concepts step-by-step in clear, easy language.\n\n` +
-  `CRITICAL FORMATTING & DIAGRAM RULES:\n` +
-  `1. If the student asks for a diagram, flowchart, architecture, or visual explanation, generate clean, complete, standalone XML/HTML SVG code wrapped inside an \`\`\`xml or \`\`\`svg code block, OR explain clearly using clean ASCII boxes.\n` +
-  `2. Do NOT output messy characters, broken markdown, or raw unsupported symbols.\n` +
-  `3. Format equations and code blocks cleanly using standard markdown.\n\n` +
-  historyContext +
-  `Student Command: ${prompt && prompt.trim() ? prompt.trim() : 'Please read this attached document/image and solve or explain all questions step-by-step.'}`;
+      `You are a helpful AI Study Assistant inside the ExamSeat Student Portal.
+Strict Formatting Rules:
+1. DO NOT use LaTeX math symbols or dollar signs (do NOT write $S_1$, $D_0$ - instead write S1, D0 or clean plain text).
+2. DO NOT use raw Markdown pipe tables (like | S1 | S0 |). Instead, format structured data using clean bullet points and indented lists.
+3. If providing flowcharts or diagrams, wrap them inside a code block (\`\`\`text ... \`\`\`).
+4. Keep the output clean, simple, and student-friendly.\n\n` +
+      historyContext +
+      `Student Command: ${prompt && prompt.trim() ? prompt.trim() : 'Please solve or explain this document step-by-step.'}`;
 
     const userParts = [];
     if (fileBase64 && fileMimeType) {

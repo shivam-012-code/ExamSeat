@@ -3852,38 +3852,57 @@
                         aiBubble.style.maxWidth = '90%';
 
                         if (data.success) {
-                            let rawReply = data.reply;
+                            let formatted = data.reply
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;');
 
-                            // SVG Diagrams ko cleanly extract aur visually render karne ka parser
-                            const svgMatches = [];
-                            rawReply = rawReply.replace(/```(?:xml|svg|html)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, (match, svgContent) => {
-                                const placeholder = `__SVG_DIAGRAM_${svgMatches.length}__`;
-                                svgMatches.push(svgContent);
-                                return placeholder;
+                            // 1. Code blocks / Diagrams format
+                            formatted = formatted.replace(/```([\s\S]*?)```/g, function (match, p1) {
+                                return '<pre style="background:#1e1e2e; color:#a6adc8; padding:10px; border-radius:6px; overflow-x:auto; font-family:monospace; font-size:11px; margin:6px 0; white-space:pre;"><code>' + p1.trim() + '</code></pre>';
                             });
 
-                            // Code blocks format karna
-                            rawReply = rawReply.replace(/```([a-zA-Z]*)\n([\s\S]*?)```/g, (match, lang, code) => {
-                                const cleanCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                return `<pre style="background:#1e293b; color:#f8fafc; padding:8px 10px; border-radius:6px; overflow-x:auto; font-size:11px; margin:6px 0;"><code>${cleanCode}</code></pre>`;
-                            });
+                            // 2. Remove math dollar signs ($S_1$ -> S1)
+                            formatted = formatted.replace(/\$([^$]+)\$/g, '<strong>$1</strong>');
 
-                            // Formatting bold, linebreaks
-                            let formatted = rawReply
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                .replace(/\n/g, '<br>');
+                            // 3. Simple Markdown Table convert to clean HTML Table
+                            const lines = formatted.split('\n');
+                            let inTable = false;
+                            let tableHtml = '';
+                            let finalLines = [];
 
-                            // Diagrams ko wapas bubble me visual render karwana
-                            svgMatches.forEach((svg, idx) => {
-                                const renderedSvg = `<div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; margin:10px 0; overflow-x:auto; text-align:center;">${svg}</div>`;
-                                formatted = formatted.replace(`__SVG_DIAGRAM_${idx}__`, renderedSvg);
-                            });
+                            for (let line of lines) {
+                                const trimmed = line.trim();
+                                if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                                    if (trimmed.includes('---')) continue; // Skip separator line
+                                    if (!inTable) {
+                                        inTable = true;
+                                        tableHtml = '<table style="width:100%; border-collapse:collapse; margin:8px 0; font-size:12px; border:1px solid #cbd5e1;">';
+                                    }
+                                    const cells = trimmed.split('|').slice(1, -1);
+                                    tableHtml += '<tr>' + cells.map(c => `<td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center;">${c.trim()}</td>`).join('') + '</tr>';
+                                } else {
+                                    if (inTable) {
+                                        tableHtml += '</table>';
+                                        finalLines.push(tableHtml);
+                                        inTable = false;
+                                        tableHtml = '';
+                                    }
+                                    finalLines.push(line);
+                                }
+                            }
+                            if (inTable) {
+                                tableHtml += '</table>';
+                                finalLines.push(tableHtml);
+                            }
 
-                            aiBubble.innerHTML = `
-        <strong style="color:#6b21a8; font-size:11px;"><i class="fa-solid fa-robot"></i> AI Study Bot</strong>
-        <div style="margin-top:4px; font-size:12px; line-height:1.6; word-break:break-word;">${formatted}</div>
-    `;
+                            formatted = finalLines.join('<br>')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                            // Clean excessive line breaks inside tables
+                            formatted = formatted.replace(/<\/table><br>/g, '</table>');
+
+                            aiBubble.innerHTML = `<strong style="color:#6b21a8; font-size:11px;"><i class="fa-solid fa-robot"></i> AI Study Bot</strong><div style="margin-top:4px; font-size:12px; line-height:1.5;">${formatted}</div>`;
                             aiChatHistory.push({ role: 'user', text: prompt || `Document: ${fileLabel}` });
                             aiChatHistory.push({ role: 'model', text: data.reply });
                         } else {
