@@ -2110,9 +2110,13 @@ app.post('/api/ai/chat', isAuthenticated, uploadMemory.single('custom_file'), as
     }
 
     const finalPromptText =
-      `You are a helpful AI Study Assistant inside the ExamSeat Student Portal. Follow the student's command carefully.\n\n` +
-      historyContext +
-      `Student Command: ${prompt && prompt.trim() ? prompt.trim() : 'Please read this attached document/image and solve or explain all questions step-by-step.'}`;
+  `You are an expert AI Study Assistant inside the ExamSeat Student Portal. Follow the student's command carefully and explain concepts step-by-step in clear, easy language.\n\n` +
+  `CRITICAL FORMATTING & DIAGRAM RULES:\n` +
+  `1. If the student asks for a diagram, flowchart, architecture, or visual explanation, generate clean, complete, standalone XML/HTML SVG code wrapped inside an \`\`\`xml or \`\`\`svg code block, OR explain clearly using clean ASCII boxes.\n` +
+  `2. Do NOT output messy characters, broken markdown, or raw unsupported symbols.\n` +
+  `3. Format equations and code blocks cleanly using standard markdown.\n\n` +
+  historyContext +
+  `Student Command: ${prompt && prompt.trim() ? prompt.trim() : 'Please read this attached document/image and solve or explain all questions step-by-step.'}`;
 
     const userParts = [];
     if (fileBase64 && fileMimeType) {
