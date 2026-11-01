@@ -377,109 +377,113 @@ app.get('/', isAuthenticated, async (req, res) => {
       }
 
       const sortQuery = (selectedBranch || selectedSemester) ? { reg_no: 1 } : { _id: -1 };
-      const studentsRaw = await Student.find(studentFilter).sort(sortQuery);
+      const studentsRaw = (await Student.find(studentFilter).sort(sortQuery)) || [];
 
       const students = studentsRaw.map(s => ({
-        id: s._id.toString(),
-        reg_no: s.reg_no,
-        name: s.name,
-        branch: s.branch,
-        semester: s.semester
+        id: s._id ? s._id.toString() : '',
+        reg_no: s.reg_no || '',
+        name: s.name || '',
+        branch: s.branch || '',
+        semester: s.semester || ''
       }));
 
-      const roomsRaw = await Room.find().sort({ room_no: 1 });
+      const roomsRaw = (await Room.find().sort({ room_no: 1 })) || [];
       const rooms = roomsRaw.map(r => ({
-        id: r._id.toString(),
-        room_no: r.room_no,
+        id: r._id ? r._id.toString() : '',
+        room_no: r.room_no || 'N/A',
         rows: r.rows || (r.column_rows && r.column_rows.length ? Math.max(...r.column_rows) : 0),
-        columns: r.columns,
+        columns: r.columns || 0,
         column_rows: r.column_rows || [],
         active_seats: r.active_seats || [],
         seat_colors: r.seat_colors || [],
-        capacity: r.capacity
+        capacity: r.capacity || 0
       }));
 
-      const examsRaw = await Exam.find().populate('room_id').sort({ _id: -1 });
+      const examsRaw = (await Exam.find().populate('room_id').sort({ _id: -1 })) || [];
       const exams = examsRaw.map(e => ({
-        id: e._id.toString(),
-        subject: e.subject,
-        branch: e.branch,
-        semester: e.semester,
-        room_id: e.room_id ? e.room_id._id.toString() : null,
+        id: e._id ? e._id.toString() : '',
+        subject: e.subject || 'N/A',
+        branch: e.branch || '',
+        semester: e.semester || '',
+        room_id: e.room_id ? (e.room_id._id ? e.room_id._id.toString() : e.room_id.toString()) : null,
         room_no: (e.room_snapshot && e.room_snapshot.room_no)
           ? e.room_snapshot.room_no
-          : (e.room_id ? e.room_id.room_no : null),
+          : (e.room_id && e.room_id.room_no ? e.room_id.room_no : 'N/A'),
         seat_color: e.seat_color || 'color1',
         start_reg_no: e.start_reg_no || '',
         stop_reg_no: e.stop_reg_no || '',
-        exam_date: e.exam_date,
-        start_time: e.start_time,
-        end_time: e.end_time,
+        exam_date: e.exam_date || null,
+        start_time: e.start_time || '',
+        end_time: e.end_time || '',
         question_paper: e.question_paper || '',
         parallel_group_id: e.parallel_group_id || null
       }));
 
-      const adminUsersRaw = await User.find({ role: 'admin' }).sort({ _id: -1 });
+      const adminUsersRaw = (await User.find({ role: 'admin' }).sort({ _id: -1 })) || [];
       const adminUsers = adminUsersRaw.map(u => ({
-        id: u._id.toString(),
-        username: u.username,
-        role: u.role,
-        created_at: u.created_at
+        id: u._id ? u._id.toString() : '',
+        username: u.username || '',
+        role: u.role || 'admin',
+        created_at: u.created_at || new Date()
       }));
 
       let searchedUsers = [];
       if (userSearch) {
-        const uRows = await User.find({ username: { $regex: userSearch, $options: 'i' } }).sort({ _id: -1 });
+        const uRows = (await User.find({ username: { $regex: userSearch, $options: 'i' } }).sort({ _id: -1 })) || [];
         searchedUsers = uRows.map(u => ({
-          id: u._id.toString(),
-          username: u.username,
-          role: u.role,
-          created_at: u.created_at
+          id: u._id ? u._id.toString() : '',
+          username: u.username || '',
+          role: u.role || '',
+          created_at: u.created_at || new Date()
         }));
       }
 
-      const pyqsRaw = await Pyq.find().sort({ _id: -1 });
+      const pyqsRaw = (await Pyq.find().sort({ _id: -1 })) || [];
       const pyqs = pyqsRaw.map(p => ({
-        id: p._id.toString(),
-        title: p.title,
-        branch: p.branch,
-        semester: p.semester,
-        subject: p.subject,
-        file_url: p.file_url,
-        created_at: p.created_at
+        id: p._id ? p._id.toString() : '',
+        title: p.title || '',
+        branch: p.branch || '',
+        semester: p.semester || '',
+        subject: p.subject || '',
+        file_url: p.file_url || '',
+        created_at: p.created_at || new Date()
       }));
 
-      const mcqsRaw = await Mcq.find().sort({ _id: -1 });
+      const mcqsRaw = (await Mcq.find().sort({ _id: -1 })) || [];
       const mcqs = await Promise.all(mcqsRaw.map(async (m) => {
-        const votes = await McqVote.find({ mcq_id: m._id });
+        const votes = (await McqVote.find({ mcq_id: m._id })) || [];
         const totalVotes = votes.length;
         const optionCounts = {};
-        m.options.forEach(o => { optionCounts[o.option_id] = 0; });
+        if (Array.isArray(m.options)) {
+          m.options.forEach(o => { optionCounts[o.option_id] = 0; });
+        }
 
         votes.forEach(v => {
-          v.selected_options.forEach(optId => {
-            if (optionCounts[optId] !== undefined) {
-              optionCounts[optId]++;
-            }
-          });
+          if (Array.isArray(v.selected_options)) {
+            v.selected_options.forEach(optId => {
+              if (optionCounts[optId] !== undefined) {
+                optionCounts[optId]++;
+              }
+            });
+          }
         });
 
         return {
-          id: m._id.toString(),
-          branch: m.branch,
-          semester: m.semester,
+          id: m._id ? m._id.toString() : '',
+          branch: m.branch || '',
+          semester: m.semester || '',
           subject: m.subject || 'General',
-          question: m.question,
-          is_multiple: m.is_multiple,
-          correct_options: m.correct_options,
-          options: m.options.map(o => ({
+          question: m.question || '',
+          is_multiple: Boolean(m.is_multiple),
+          correct_options: m.correct_options || [],
+          options: Array.isArray(m.options) ? m.options.map(o => ({
             option_id: o.option_id,
-            text: o.text,
+            text: o.text || '',
             votes_count: optionCounts[o.option_id] || 0,
             percentage: totalVotes > 0 ? Math.round(((optionCounts[o.option_id] || 0) / totalVotes) * 100) : 0
-          })),
+          })) : [],
           total_votes: totalVotes,
-          created_at: m.created_at
+          created_at: m.created_at || new Date()
         };
       }));
 
