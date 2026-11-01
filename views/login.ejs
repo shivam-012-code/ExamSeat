@@ -1,138 +1,866 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamSeat - Sign In & Register</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="shortcut icon" href="https://img.icons8.com/pulsar-gradient/48/quiz.png" type="image/x-icon">
-</head>
-
-<body class="auth-body">
-
-    <div class="auth-card" style="max-width: 440px;">
-        <h2><i class="fa-solid fa-graduation-cap"></i> ExamSeat</h2>
-
-        <!-- TABS: FORGOT PASSWORD ME AUTOMATICALLY HIDE HO JAYENGE -->
-        <div id="mainAuthTabs" class="auth-tabs">
-            <button id="loginTabBtn" class="active" onclick="switchAuthMode('login')">Sign In</button>
-            <button id="registerTabBtn" onclick="switchAuthMode('register')">Register</button>
-        </div>
-
-        <% if (error) { %>
-            <div class="alert alert-error"><%= error %></div>
-        <% } %>
-
-        <% if (success) { %>
-            <div class="alert alert-success"><%= success %></div>
-        <% } %>
-
-        <!-- SIGN IN FORM -->
-        <form id="loginForm" action="/login" method="POST" class="auth-form">
-            <input type="text" name="username" placeholder="Username / Registration Number" required>
-            <input type="password" name="password" placeholder="Enter Password" required>
-            <button type="submit">Sign In</button>
-            <button type="button" class="forgot-link-btn" onclick="switchAuthMode('forgot')">Forgot Password?</button>
-        </form>
-
-        <!-- REGISTER FORM WITH REAL-TIME EMAIL OTP VERIFICATION -->
-        <form id="registerForm" action="/register" method="POST" class="auth-form hidden">
-            <input type="text" id="regUsername" name="username" placeholder="Registration Number (e.g. 121XXXXXXX)" required>
-            
-            <div class="input-inline-btn">
-                <input type="email" id="regEmail" name="email" placeholder="Enter Email Address" required>
-                <button type="button" class="btn-blue" id="btnGenRegOtp" onclick="generateRegisterEmailOtp()">Generate OTP</button>
-            </div>
-            <div id="regOtpMsg" class="status-msg"></div>
-
-            <div class="input-inline-btn" id="regOtpRow" style="display: none;">
-                <input type="text" id="regOtpInput" placeholder="Enter 6-digit OTP from Email" maxlength="6">
-                <button type="button" class="btn-green" id="btnVerifyRegOtp" onclick="verifyRegisterEmailOtp()">Verify OTP</button>
-            </div>
-
-            <!-- Password disabled rahega jb tk Email  verified nhi ho jata  -->
-            <input type="password" id="regPassword" name="password" placeholder="Create Password" required disabled title="First verify your Email OTP">
-            <button type="submit" id="regSubmitBtn" disabled>Register Account</button>
-        </form>
-
-        <!-- Forgot Password (TABS COMPLETELY HIDDEN) -->
-        <div id="forgotForm" class="auth-form hidden">
-            <h3 style="margin-top: 0; font-size: 16px; color: #1e3a8a;"><i class="fa-solid fa-key"></i> Reset Your Password</h3>
-            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Enter your Registration Number and Registered Email Address to reset Password.</p>
-            
-            <input type="text" id="forgotUsername" placeholder="Registration Number" required>
-            <br><br>
-            
-            <div class="input-inline-btn">
-                <input type="email" id="forgotEmail" placeholder="Registered Email Address" required>
-                <button type="button" class="btn-blue" id="btnGenForgotOtp" onclick="generateForgotEmailOtp()">Send OTP</button>
-            </div>
-            <div id="forgotOtpMsg" class="status-msg"></div>
-
-            <div class="input-inline-btn" id="forgotOtpRow" style="display: none;">
-                <input type="text" id="forgotOtpInput" placeholder="Enter 6-digit OTP from Email" maxlength="6">
-                <button type="button" class="btn-green" id="btnVerifyForgotOtp" onclick="verifyForgotEmailOtp()">Verify OTP</button>
-            </div>
-
-            <div id="forgotNewPassRow" style="display: none;">
-                <input type="password" id="forgotNewPassInput" placeholder="Enter New Password" required>
-                <button type="button" class="btn-green" style="width: 100%;" onclick="submitResetPasswordEmail()">Update Password</button>
-            </div>
-
-            <button type="button" class="forgot-link-btn" style="text-align: center; margin-top: 15px;" onclick="switchAuthMode('login')">← Back to Sign In</button>
-        </div>
-
-    </div>
-
-    <script>
-        function switchAuthMode(mode) {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const forgotForm = document.getElementById('forgotForm');
-            const loginBtn = document.getElementById('loginTabBtn');
-            const registerBtn = document.getElementById('registerTabBtn');
-            const mainTabs = document.getElementById('mainAuthTabs');
-
-            loginForm.classList.add('hidden');
-            registerForm.classList.add('hidden');
-            forgotForm.classList.add('hidden');
-            loginBtn.classList.remove('active');
-            registerBtn.classList.remove('active');
-
-            if (mode === 'login') {
-                mainTabs.style.display = 'flex';
-                loginForm.classList.remove('hidden');
-                loginBtn.classList.add('active');
-            } else if (mode === 'register') {
-                mainTabs.style.display = 'flex';
-                registerForm.classList.remove('hidden');
-                registerBtn.classList.add('active');
-            } else if (mode === 'forgot') {
-                mainTabs.style.display = 'none'; // Forgot pass me tabs hide krne ke liye
-                forgotForm.classList.remove('hidden');
-            }
+    <title>ExamSeat - Smart Student & Exam Seating Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scroll-behavior: smooth;
         }
 
-        // --- REGISTRATION EMAIL OTP LOGIC ---
-        async function generateRegisterEmailOtp() {
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        /* ---------------- NAVBAR ---------------- */
+        .navbar {
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 6%;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e3a8a;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 36px; /* Increased spacing between links */
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #475569;
+            font-weight: 600;
+            font-size: 15px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: #2563eb;
+        }
+
+        .nav-btns {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .btn-outline {
+            border: 1.5px solid #2563eb;
+            color: #2563eb;
+            background: transparent;
+            padding: 9px 20px;
+            border-radius: 7px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline:hover {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            border: 1.5px solid #2563eb;
+            color: white;
+            padding: 9px 20px;
+            border-radius: 7px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        /* ---------------- HERO SECTION ---------------- */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            color: white;
+            padding: 70px 6% 60px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 18px;
+            line-height: 1.25;
+        }
+
+        .hero p {
+            font-size: 17px;
+            max-width: 760px;
+            margin: 0 auto 32px;
+            opacity: 0.94;
+            line-height: 1.7;
+        }
+
+        .hero-cta {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .hero-cta button {
+            padding: 13px 30px;
+            font-size: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-white {
+            background: #ffffff;
+            color: #1e3a8a;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        }
+
+        .btn-white:hover {
+            background: #f1f5f9;
+            transform: translateY(-2px);
+        }
+
+        .btn-trans {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.5);
+        }
+
+        .btn-trans:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+        }
+
+        /* ---------------- STATS STRIP (NO OVERLAP) ---------------- */
+        .stats-strip-container {
+            padding: 40px 6% 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-strip {
+            display: flex;
+            justify-content: space-around;
+            background: #ffffff;
+            padding: 32px 24px;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .stat-item h3 {
+            font-size: 34px;
+            color: #1e3a8a;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-item p {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* ---------------- SECTIONS ---------------- */
+        .section {
+            padding: 60px 6%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 45px;
+        }
+
+        .section-title h2 {
+            font-size: 30px;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .section-title p {
+            color: #64748b;
+            font-size: 15px;
+            margin-top: 8px;
+        }
+
+        /* Features */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 26px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 28px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 18px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* How it Works */
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            text-align: center;
+        }
+
+        .step-box {
+            background: white;
+            padding: 32px 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .step-number {
+            width: 44px;
+            height: 44px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 0 auto 16px;
+            font-size: 17px;
+        }
+
+        /* ---------------- FOOTER ---------------- */
+        footer {
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 65px 6% 25px;
+            margin-top: 50px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+        }
+
+        .footer-col h4 {
+            color: white;
+            font-size: 17px;
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+
+        .footer-col p {
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .footer-col ul li a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-col ul li a:hover {
+            color: white;
+        }
+
+        .footer-contact li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: #94a3b8;
+        }
+
+        .footer-contact i {
+            color: #3b82f6;
+            margin-top: 5px;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 25px;
+            border-top: 1px solid #1e293b;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* ---------------- AUTH MODALS ---------------- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 14px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            animation: popIn 0.22s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.93); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            font-size: 24px;
+            color: #64748b;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .modal-header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #2563eb;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #1d4ed8;
+        }
+
+        .forgot-link {
+            display: inline-block;
+            font-size: 13px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .alert-box {
+            padding: 11px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #f87171;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #86efac;
+        }
+
+        @media (max-width: 820px) {
+            .navbar {
+                flex-wrap: wrap;
+                gap: 14px;
+                padding: 14px 5%;
+            }
+            .nav-links {
+                display: none;
+            }
+            .hero h1 {
+                font-size: 30px;
+            }
+            .hero p {
+                font-size: 15px;
+            }
+            .stats-strip {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ---------------- NAVIGATION BAR ---------------- -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <i class="fa-solid fa-graduation-cap"></i> ExamSeat
+        </a>
+
+        <!-- Spaced out navbar links -->
+        <ul class="nav-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+
+        <!-- Direct Action Buttons -->
+        <div class="nav-btns">
+            <button class="btn-outline" onclick="openLoginModal()"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+            <button class="btn-primary" onclick="openRegisterModal()"><i class="fa-solid fa-user-plus"></i> Register</button>
+        </div>
+    </nav>
+
+    <!-- ---------------- HERO HEADER ---------------- -->
+    <header class="hero">
+        <h1>Smart Student Portal & Automated Exam Seating</h1>
+        <p>A unified, AI-powered academic examination portal designed for seamless randomized seating allocation, past year papers, internal mark tracking, and real-time student collaboration.</p>
+        <div class="hero-cta">
+            <button class="btn-white" onclick="openLoginModal()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Student Login</button>
+            <button class="btn-trans" onclick="openRegisterModal()"><i class="fa-solid fa-user-check"></i> New Registration</button>
+        </div>
+    </header>
+
+    <!-- ---------------- STATS STRIP (CLEAN SEPARATION, NO OVERLAP) ---------------- -->
+    <div class="stats-strip-container">
+        <div class="stats-strip">
+            <div class="stat-item">
+                <h3>1,500+</h3>
+                <p>Registered Students</p>
+            </div>
+            <div class="stat-item">
+                <h3>100%</h3>
+                <p>Fair Randomized Seating</p>
+            </div>
+            <div class="stat-item">
+                <h3>150+</h3>
+                <p>Solved PYQs & Papers</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>AI Study Assistant</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------------- ABOUT SECTION ---------------- -->
+    <section class="section" id="about">
+        <div class="section-title">
+            <h2>About ExamSeat Portal</h2>
+            <p>Simplifying collegiate exam administration and empowering students with smart academic tools.</p>
+        </div>
+        <div style="background: white; padding: 35px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.8; color: #475569;">
+            <p style="margin-bottom: 14px;">
+                <strong>ExamSeat</strong> is an integrated academic portal built to eliminate the stress of examination logistics for both faculty and students. Traditionally, seating arrangements, past question archives, and result tracking are scattered across notice boards and emails.
+            </p>
+            <p>
+                Our portal brings automated seat generation with dual-color alternate arrangements to prevent cheating, provides an integrated Gemini AI Assistant to help students solve complex PYQ questions, and offers real-time classroom polls and discussion forums.
+            </p>
+        </div>
+    </section>
+
+    <!-- ---------------- KEY FEATURES ---------------- -->
+    <section class="section" id="features">
+        <div class="section-title">
+            <h2>Core Portal Features</h2>
+            <p>Everything students and administrators need under one roof.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #eff6ff; color: #2563eb;">
+                    <i class="fa-solid fa-chair"></i>
+                </div>
+                <h3>Randomized Seating</h3>
+                <p>Automated room layouts with color-coded alternate seating to ensure complete transparency and eliminate exam hall malpractice.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #fdf2f8; color: #db2777;">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <h3>AI Study Assistant</h3>
+                <p>Integrated Gemini AI that reads uploaded question papers, handwritten photos, or PDFs and provides instant step-by-step solutions.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #ecfdf5; color: #059669;">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <h3>PYQ Papers & Tracking</h3>
+                <p>Branch and semester-wise past year questions with interactive checkboxes to track your subject preparation progress.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #fefce8; color: #ca8a04;">
+                    <i class="fa-solid fa-chart-simple"></i>
+                </div>
+                <h3>Internal Marks Analysis</h3>
+                <p>Students can view detailed question-wise breakdowns of their test marks uploaded directly by faculty via Excel.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #f5f3ff; color: #7c3aed;">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <h3>Class Discussions & Polls</h3>
+                <p>Live classroom chat forums and verified student voting polls for quick feedback on academic schedules.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon" style="background: #f8fafc; color: #0284c7; border: 1px solid #e2e8f0;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3>Email OTP Verification</h3>
+                <p>Secure login and registration powered by real-time email OTP verification to protect student academic profiles.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------------- HOW IT WORKS ---------------- -->
+    <section class="section" id="how-it-works">
+        <div class="section-title">
+            <h2>How It Works</h2>
+            <p>Three simple steps to access your complete examination dashboard.</p>
+        </div>
+
+        <div class="steps-container">
+            <div class="step-box">
+                <div class="step-number">1</div>
+                <h4 style="margin-bottom: 8px;">Create Account</h4>
+                <p style="font-size: 13px; color: #64748b;">Verify your official college registration number and email with an instant OTP.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-number">2</div>
+                <h4 style="margin-bottom: 8px;">Check Allotment</h4>
+                <p style="font-size: 13px; color: #64748b;">Log in to view your examination timetable, assigned room, and specific bench position.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-number">3</div>
+                <h4 style="margin-bottom: 8px;">Prepare & Excel</h4>
+                <p style="font-size: 13px; color: #64748b;">Download branch PYQs, solve them with the AI Study Bot, and track test marks.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------------- FOOTER & CONTACT DETAILS ---------------- -->
+    <footer id="contact">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4><i class="fa-solid fa-graduation-cap"></i> ExamSeat Portal</h4>
+                <p>A smart, digital examination seating and academic preparation system for university students and administrators.</p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Quick Navigation</h4>
+                <ul>
+                    <li><a href="#about">About the Portal</a></li>
+                    <li><a href="#features">Features Overview</a></li>
+                    <li><a href="#how-it-works">User Guide</a></li>
+                    <li><a href="javascript:void(0)" onclick="openLoginModal()">Student Sign In</a></li>
+                    <li><a href="javascript:void(0)" onclick="openRegisterModal()">Register New Account</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Contact Details</h4>
+                <ul class="footer-contact">
+                    <li><i class="fa-solid fa-location-dot"></i> <span>Examination Control Cell, Main Campus Block, University Road.</span></li>
+                    <li><i class="fa-solid fa-phone"></i> <span>+91 98765 43210 / 011-23456789</span></li>
+                    <li><i class="fa-solid fa-envelope"></i> <span>examcell@university.edu.in</span></li>
+                    <li><i class="fa-solid fa-clock"></i> <span>Mon - Sat: 9:00 AM - 5:00 PM</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2026 ExamSeat Student Portal. All rights reserved. Designed for Higher Education Institutions.
+        </div>
+    </footer>
+
+    <!-- ---------------- 1. SIGN IN MODAL ---------------- -->
+    <div class="modal <%= error ? 'active' : '' %>" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeAllModals()">&times;</button>
+            <div class="modal-header-title">
+                <i class="fa-solid fa-right-to-bracket" style="color:#2563eb;"></i> Student & Admin Sign In
+            </div>
+
+            <% if (error) { %>
+                <div class="alert-box alert-error"><i class="fa-solid fa-triangle-exclamation"></i> <%= error %></div>
+            <% } %>
+
+            <form action="/login" method="POST">
+                <div class="form-group">
+                    <label>Registration Number / Admin Username</label>
+                    <input type="text" name="username" placeholder="e.g. 1210001 or admin@college" required>
+                </div>
+                <div class="form-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label>Password</label>
+                        <a href="javascript:void(0)" class="forgot-link" onclick="openForgotModal()">Forgot Password?</a>
+                    </div>
+                    <input type="password" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn-submit">Sign In to Dashboard</button>
+            </form>
+            <div style="text-align:center; margin-top:16px; font-size:13px; color:#64748b;">
+                Don't have an account? <a href="javascript:void(0)" style="color:#2563eb; font-weight:600; text-decoration:none;" onclick="openRegisterModal()">Register here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------------- 2. REGISTER MODAL ---------------- -->
+    <div class="modal <%= success ? 'active' : '' %>" id="registerModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeAllModals()">&times;</button>
+            <div class="modal-header-title">
+                <i class="fa-solid fa-user-plus" style="color:#2563eb;"></i> New Student Registration
+            </div>
+
+            <% if (success) { %>
+                <div class="alert-box alert-success"><i class="fa-solid fa-circle-check"></i> <%= success %></div>
+            <% } %>
+
+            <form action="/register" method="POST">
+                <div class="form-group">
+                    <label>Registration Number</label>
+                    <input type="text" name="username" id="regUsername" placeholder="e.g. 1210001" required>
+                </div>
+                <div class="form-group">
+                    <label>College Email ID</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="email" name="email" id="regEmail" placeholder="student@college.edu" required>
+                        <button type="button" class="btn-outline" style="font-size:12px; padding:6px 12px; white-space:nowrap;" onclick="sendRegOtp()">Get OTP</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Enter 6-Digit Email OTP</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="text" id="regOtpInput" placeholder="6-digit code">
+                        <button type="button" class="btn-outline" style="font-size:12px; padding:6px 12px; white-space:nowrap;" onclick="verifyRegOtp()">Verify</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Create Password</label>
+                    <input type="password" name="password" placeholder="Create strong password" required>
+                </div>
+                <button type="submit" class="btn-submit" id="regSubmitBtn" disabled style="opacity:0.6;">Complete Registration</button>
+            </form>
+            <div style="text-align:center; margin-top:16px; font-size:13px; color:#64748b;">
+                Already registered? <a href="javascript:void(0)" style="color:#2563eb; font-weight:600; text-decoration:none;" onclick="openLoginModal()">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------------- 3. FORGOT PASSWORD MODAL ---------------- -->
+    <div class="modal" id="forgotModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeAllModals()">&times;</button>
+            <div class="modal-header-title">
+                <i class="fa-solid fa-key" style="color:#2563eb;"></i> Reset Your Password
+            </div>
+
+            <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="forgotUsername" placeholder="Enter registration number" required>
+            </div>
+            <div class="form-group">
+                <label>Registered Email ID</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="email" id="forgotEmail" placeholder="Enter registered email" required>
+                    <button type="button" class="btn-outline" style="font-size:12px; padding:6px 12px; white-space:nowrap;" onclick="sendForgotOtp()">Get OTP</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Enter 6-Digit OTP</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="forgotOtpInput" placeholder="6-digit OTP">
+                    <button type="button" class="btn-outline" style="font-size:12px; padding:6px 12px; white-space:nowrap;" onclick="verifyForgotOtp()">Verify</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Enter New Password</label>
+                <input type="password" id="forgotNewPassword" placeholder="Create new password" required>
+            </div>
+            <button type="button" class="btn-submit" id="forgotSubmitBtn" onclick="submitResetPassword()" disabled style="opacity:0.6;">Reset Password</button>
+
+            <div style="text-align:center; margin-top:16px; font-size:13px;">
+                <a href="javascript:void(0)" style="color:#2563eb; font-weight:600; text-decoration:none;" onclick="openLoginModal()"><i class="fa-solid fa-arrow-left"></i> Back to Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------------- JAVASCRIPT LOGIC ---------------- -->
+    <script>
+        function closeAllModals() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('registerModal').classList.remove('active');
+            document.getElementById('forgotModal').classList.remove('active');
+        }
+
+        function openLoginModal() {
+            closeAllModals();
+            document.getElementById('loginModal').classList.add('active');
+        }
+
+        function openRegisterModal() {
+            closeAllModals();
+            document.getElementById('registerModal').classList.add('active');
+        }
+
+        function openForgotModal() {
+            closeAllModals();
+            document.getElementById('forgotModal').classList.add('active');
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeAllModals();
+            }
+        };
+
+        // --- REGISTER OTP FUNCTIONS ---
+        async function sendRegOtp() {
             const username = document.getElementById('regUsername').value.trim();
             const email = document.getElementById('regEmail').value.trim();
-            const msgBox = document.getElementById('regOtpMsg');
-            const btn = document.getElementById('btnGenRegOtp');
 
-            if (!username) {
-                showStatus(msgBox, 'First enter your Registration Number.', false);
+            if (!username || !email) {
+                alert('Please enter both Registration Number and Email first.');
                 return;
             }
-            if (!email || !email.includes('@')) {
-                showStatus(msgBox, 'Please enter Valid Email Address.', false);
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerText = 'Sending Email...';
 
             try {
                 const res = await fetch('/api/otp/send-register', {
@@ -141,35 +869,20 @@
                     body: JSON.stringify({ username, email })
                 });
                 const data = await res.json();
-                btn.disabled = false;
-                btn.innerText = 'Resend OTP';
-
-                if (data.success) {
-                    showStatus(msgBox, data.message, true);
-                    document.getElementById('regOtpRow').style.display = 'flex';
-                } else {
-                    showStatus(msgBox, data.message, false);
-                }
+                alert(data.message);
             } catch (err) {
-                btn.disabled = false;
-                btn.innerText = 'Generate OTP';
-                showStatus(msgBox, 'Server dwara email send karne me error aayi.', false);
+                alert('Failed to send OTP. Please check server.');
             }
         }
 
-        async function verifyRegisterEmailOtp() {
+        async function verifyRegOtp() {
             const email = document.getElementById('regEmail').value.trim();
             const otp = document.getElementById('regOtpInput').value.trim();
-            const msgBox = document.getElementById('regOtpMsg');
-            const btn = document.getElementById('btnVerifyRegOtp');
 
-            if (!otp || otp.length !== 6) {
-                showStatus(msgBox, 'Enter 6-digit OTP from Email.', false);
+            if (!email || !otp) {
+                alert('Please enter Email and OTP code.');
                 return;
             }
-
-            btn.disabled = true;
-            btn.innerText = 'Verifying...';
 
             try {
                 const res = await fetch('/api/otp/verify-register', {
@@ -178,42 +891,26 @@
                     body: JSON.stringify({ email, otp })
                 });
                 const data = await res.json();
-                btn.disabled = false;
-                btn.innerText = 'Verify OTP';
-
+                alert(data.message);
                 if (data.success) {
-                    showStatus(msgBox, data.message, true);
-                    // Password field aur Register button enable karna
-                    document.getElementById('regPassword').disabled = false;
-                    document.getElementById('regSubmitBtn').disabled = false;
-                    document.getElementById('regEmail').readOnly = true;
-                    document.getElementById('regUsername').readOnly = true;
-                    document.getElementById('btnGenRegOtp').disabled = true;
-                    document.getElementById('regOtpRow').style.display = 'none';
-                } else {
-                    showStatus(msgBox, data.message, false);
+                    const btn = document.getElementById('regSubmitBtn');
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
                 }
             } catch (err) {
-                btn.disabled = false;
-                btn.innerText = 'Verify OTP';
-                showStatus(msgBox, 'Verification failed', false);
+                alert('Verification failed.');
             }
         }
 
-        // --- FORGOT PASSWORD EMAIL OTP LOGIC ---
-        async function generateForgotEmailOtp() {
+        // --- FORGOT PASSWORD OTP & RESET FUNCTIONS ---
+        async function sendForgotOtp() {
             const username = document.getElementById('forgotUsername').value.trim();
             const email = document.getElementById('forgotEmail').value.trim();
-            const msgBox = document.getElementById('forgotOtpMsg');
-            const btn = document.getElementById('btnGenForgotOtp');
 
             if (!username || !email) {
-                showStatus(msgBox, 'Registration Number aur Email dono enter karein.', false);
+                alert('Please enter both Registration Number and Email.');
                 return;
             }
-
-            btn.disabled = true;
-            btn.innerText = 'Sending Email...';
 
             try {
                 const res = await fetch('/api/otp/send-forgot', {
@@ -222,35 +919,20 @@
                     body: JSON.stringify({ username, email })
                 });
                 const data = await res.json();
-                btn.disabled = false;
-                btn.innerText = 'Resend OTP';
-
-                if (data.success) {
-                    showStatus(msgBox, data.message, true);
-                    document.getElementById('forgotOtpRow').style.display = 'flex';
-                } else {
-                    showStatus(msgBox, data.message, false);
-                }
+                alert(data.message);
             } catch (err) {
-                btn.disabled = false;
-                btn.innerText = 'Send OTP';
-                showStatus(msgBox, 'Issue in sending Email.', false);
+                alert('Failed to send OTP. Please check network connection.');
             }
         }
 
-        async function verifyForgotEmailOtp() {
+        async function verifyForgotOtp() {
             const email = document.getElementById('forgotEmail').value.trim();
             const otp = document.getElementById('forgotOtpInput').value.trim();
-            const msgBox = document.getElementById('forgotOtpMsg');
-            const btn = document.getElementById('btnVerifyForgotOtp');
 
-            if (!otp || otp.length !== 6) {
-                showStatus(msgBox, 'Enter 6-digit OTP.', false);
+            if (!email || !otp) {
+                alert('Please enter Email and OTP code.');
                 return;
             }
-
-            btn.disabled = true;
-            btn.innerText = 'Verifying...';
 
             try {
                 const res = await fetch('/api/otp/verify-forgot', {
@@ -259,34 +941,24 @@
                     body: JSON.stringify({ email, otp })
                 });
                 const data = await res.json();
-                btn.disabled = false;
-                btn.innerText = 'Verify OTP';
-
+                alert(data.message);
                 if (data.success) {
-                    showStatus(msgBox, data.message, true);
-                    document.getElementById('forgotOtpRow').style.display = 'none';
-                    document.getElementById('btnGenForgotOtp').disabled = true;
-                    document.getElementById('forgotUsername').readOnly = true;
-                    document.getElementById('forgotEmail').readOnly = true;
-                    document.getElementById('forgotNewPassRow').style.display = 'block';
-                } else {
-                    showStatus(msgBox, data.message, false);
+                    const btn = document.getElementById('forgotSubmitBtn');
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
                 }
             } catch (err) {
-                btn.disabled = false;
-                btn.innerText = 'Verify OTP';
-                showStatus(msgBox, 'Verification error', false);
+                alert('Verification failed.');
             }
         }
 
-        async function submitResetPasswordEmail() {
+        async function submitResetPassword() {
             const username = document.getElementById('forgotUsername').value.trim();
             const email = document.getElementById('forgotEmail').value.trim();
-            const newPassword = document.getElementById('forgotNewPassInput').value;
-            const msgBox = document.getElementById('forgotOtpMsg');
+            const new_password = document.getElementById('forgotNewPassword').value;
 
-            if (!newPassword || newPassword.length < 4) {
-                showStatus(msgBox, 'Password must be of minimum 4 characters.', false);
+            if (!username || !email || !new_password) {
+                alert('Please fill all fields.');
                 return;
             }
 
@@ -294,26 +966,17 @@
                 const res = await fetch('/api/auth/reset-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, new_password: newPassword })
+                    body: JSON.stringify({ username, email, new_password })
                 });
                 const data = await res.json();
+                alert(data.message);
                 if (data.success) {
-                    alert(data.message);
-                    window.location.href = '/login';
-                } else {
-                    showStatus(msgBox, data.message, false);
+                    openLoginModal();
                 }
             } catch (err) {
-                showStatus(msgBox, 'Error in updating Password.', false);
+                alert('Password reset failed.');
             }
         }
-
-        function showStatus(elem, msg, isSuccess) {
-            elem.innerText = msg;
-            elem.className = isSuccess ? 'status-msg status-success' : 'status-msg status-error';
-        }
     </script>
-
 </body>
-
 </html>
