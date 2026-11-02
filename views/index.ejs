@@ -633,171 +633,72 @@
                             <th>Date & Time</th>
                             <th>Actions</th>
                         </tr>
-                        <% // Pre-arrange exams so dual/parallel exams always stay together as a pair const
-                            orderedExams=[]; const visitedIds=new Set(); exams.forEach((ex, i)=> {
-                            if (visitedIds.has(ex.id)) return;
+                        <tbody>
+                        <% 
+                        const orderedExams = [];
+                        const visitedIds = new Set();
+                        if (typeof exams !== 'undefined' && Array.isArray(exams)) {
+                            exams.forEach((ex) => {
+                                if (!ex || !ex.id || visitedIds.has(ex.id)) return;
+                                visitedIds.add(ex.id);
+                                orderedExams.push(ex);
 
-                            let partner = null;
-                            if (ex.parallel_group_id) {
-                            partner = exams.find(other => other.id !== ex.id && !visitedIds.has(other.id) &&
-                            other.parallel_group_id === ex.parallel_group_id);
-                            } else {
-                            // Fallback for older dual exams created at the same room, date & time with opposite seat
-                            color
-                            const exDateStr = ex.exam_date ? new Date(ex.exam_date).toISOString().split('T')[0] : '';
-                            partner = exams.find(other => {
-                            if (other.id === ex.id || visitedIds.has(other.id) || other.parallel_group_id) return false;
-                            const otherDateStr = other.exam_date ? new Date(other.exam_date).toISOString().split('T')[0]
-                            : '';
-                            return ex.room_id && other.room_id === ex.room_id &&
-                            exDateStr === otherDateStr &&
-                            other.start_time === ex.start_time &&
-                            other.seat_color !== ex.seat_color;
+                                if (ex.parallel_group_id) {
+                                    const partner = exams.find(other => other && other.id !== ex.id && other.parallel_group_id === ex.parallel_group_id);
+                                    if (partner && !visitedIds.has(partner.id)) {
+                                        visitedIds.add(partner.id);
+                                        orderedExams.push(partner);
+                                    }
+                                }
                             });
-                            }
+                        }
+                        %>
 
-                            if (partner) {
-                            visitedIds.add(ex.id);
-                            visitedIds.add(partner.id);
-                            const primaryEx = ex.seat_color === 'color1' ? ex : partner;
-                            const secondaryEx = ex.seat_color === 'color1' ? partner : ex;
-                            orderedExams.push({ ...primaryEx, rowType: 'dual-top' });
-                            orderedExams.push({ ...secondaryEx, rowType: 'dual-bottom' });
-                            } else {
-                            visitedIds.add(ex.id);
-                            orderedExams.push({ ...ex, rowType: 'single' });
-                            }
-                            });
+                        <% if (orderedExams.length === 0) { %>
+                            <tr>
+                                <td colspan="9" style="text-align: center; color: #64748b; padding: 25px;">No exams scheduled yet.</td>
+                            </tr>
+                        <% } else { %>
+                            <% orderedExams.forEach(function(exam) { 
+                                const seatColor = (exam && exam.seat_color) ? exam.seat_color : 'color1';
                             %>
-
-                            <% orderedExams.forEach(exam=> {
-                                const formattedDate = exam.exam_date ? new
-                                Date(exam.exam_date).toISOString().split('T')[0] : '';
-                                const isColor2 = exam.seat_color === 'color2';
-                                const trClass = exam.rowType === 'dual-top' ? 'dual-exam-top' : (exam.rowType ===
-                                'dual-bottom' ? 'dual-exam-bottom' : 'single-exam-row');
-                                %>
-                                <tr class="<%= trClass %>">
+                                <tr>
+                                    <td><strong><%= exam.subject %></strong></td>
+                                    <td><%= exam.branch || 'All Branches' %></td>
+                                    <td><%= exam.semester ? 'Sem ' + exam.semester : 'All Semesters' %></td>
+                                    <td><%= exam.room_no || 'Not Assigned' %></td>
                                     <td>
-                                        <% if (exam.rowType==='dual-top' ) { %>
-                                            <span class="badge"
-                                                style="background: #dbeafe; color: #1e40af; font-size: 10px; display: inline-block; margin-bottom: 3px;">
-                                                <i class="fa-solid fa-link"></i> Dual Exam (1st - Primary)
-                                            </span><br>
-                                            <% } else if (exam.rowType==='dual-bottom' ) { %>
-                                                <span class="badge"
-                                                    style="background: #fee2e2; color: #991b1b; font-size: 10px; display: inline-block; margin-bottom: 3px;">
-                                                    <i class="fa-solid fa-link"></i> Dual Exam (2nd - Parallel)
-                                                </span><br>
-                                                <% } else { %>
-                                                    <span class="badge"
-                                                        style="background: #f1f5f9; color: #475569; font-size: 10px; display: inline-block; margin-bottom: 3px;">
-                                                        Individual Exam
-                                                    </span><br>
-                                                    <% } %>
-                                                        <strong>
-                                                            <%= exam.subject %>
-                                                        </strong>
+                                        <% if (seatColor === 'color2') { %>
+                                            <span style="background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 11px;">Red / Color 2</span>
+                                        <% } else { %>
+                                            <span style="background: #eff6ff; color: #2563eb; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 11px;">Blue / Color 1</span>
+                                        <% } %>
                                     </td>
+                                    <td><%= exam.start_reg_no && exam.stop_reg_no ? exam.start_reg_no + ' to ' + exam.stop_reg_no : 'All' %></td>
+                                    <td><%= exam.exam_date ? new Date(exam.exam_date).toISOString().split('T')[0] : 'N/A' %></td>
+                                    <td><%= exam.start_time %> - <%= exam.end_time %></td>
                                     <td>
-                                        <div class="badge" style="text-align: center;">
-                                            <%= exam.branch || 'All' %>
+                                        <div style="display: flex; gap: 6px; align-items: center;">
+                                            <button class="action-btn" style="background:#0284c7; color:white;" onclick="previewExamSeatLayout('<%= exam.id %>')">
+                                                <i class="fa-solid fa-eye"></i> View
+                                            </button>
+                                            <a href="/generate_seating/<%= exam.id %>" class="action-btn" style="background:#16a34a; color:white; text-decoration:none;">
+                                                <i class="fa-solid fa-arrows-rotate"></i> Arrange
+                                            </a>
+                                            <a href="/download_seat_layout_pdf/<%= exam.id %>" class="action-btn" style="background:#7c3aed; color:white; text-decoration:none;">
+                                                <i class="fa-solid fa-file-pdf"></i> PDF
+                                            </a>
+                                            <form action="/delete_exam/<%= exam.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Delete this exam?');">
+                                                <button type="submit" class="action-btn" style="background:#dc2626; color:white;">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
-                                        Sem <%= exam.semester || 'N/A' %>
                                     </td>
-                                    <% if (exam.rowType==='dual-top' ) { %>
-                                        <td rowspan="2"
-                                            style="vertical-align: middle; border-bottom: 2px solid #94a3b8 !important; background: #f1f5f9; text-align: center;">
-                                            <strong>Room <%= exam.room_no ? exam.room_no : 'N/A' %></strong><br>
-                                            <small style="color: #1e3a8a; font-weight: bold;">(Shared Room)</small>
-                                        </td>
-                                        <% } else if (exam.rowType==='single' ) { %>
-                                            <td style="text-align: center;"><strong>
-                                                    <%= exam.room_no ? exam.room_no : 'N/A' %>
-                                                </strong></td>
-                                            <% } %>
-                                                <td>
-                                                    <% if (exam.start_reg_no && exam.stop_reg_no) { %>
-                                                        <small><strong>
-                                                                <%= exam.start_reg_no %>
-                                                            </strong> to <strong>
-                                                                <%= exam.stop_reg_no %>
-                                                            </strong></small>
-                                                        <% } else { %>
-                                                            <span style="color: #64748b; font-style: italic;">All
-                                                                Students</span>
-                                                            <% } %>
-                                                </td>
-                                                <td>
-                                                    <% if (isColor2) { %>
-                                                        <div class="badge bg-red">Red Seats</div>
-                                                        <% } else { %>
-                                                            <div class="badge bg-blue">Blue Seats</div>
-                                                            <% } %>
-                                                </td>
-                                                <% if (exam.rowType==='dual-top' ) { %>
-                                                    <td rowspan="2"
-                                                        style="vertical-align: middle; border-bottom: 2px solid #94a3b8 !important; background: #f1f5f9;">
-                                                        <%= formattedDate %><br>
-                                                            <small>
-                                                                <%= exam.start_time %> - <%= exam.end_time %>
-                                                            </small>
-                                                    </td>
-                                                    <% } else if (exam.rowType==='single' ) { %>
-                                                        <td>
-                                                            <%= formattedDate %><br>
-                                                                <small>
-                                                                    <%= exam.start_time %> - <%= exam.end_time %>
-                                                                </small>
-                                                        </td>
-                                                        <% } %>
-                                                            <td>
-                                                                <a href="/generate_seating/<%= exam.id %>"
-                                                                    style="text-decoration: none;">
-                                                                    <button type="button" class="btn-blue"
-                                                                        style="margin-bottom: 4px;"><i
-                                                                            class="fa-solid fa-shuffle"></i> Randomize
-                                                                        Seats</button>
-                                                                </a>
-
-                                                                <button type="button" class="btn-blue"
-                                                                    style="background: #0f766e; margin-bottom: 4px;"
-                                                                    onclick="openExamSeatLayoutModal('<%= exam.id %>')">
-                                                                    <i class="fa-solid fa-table-cells"></i> Seat Layout
-                                                                </button>
-
-                                                                <div class="export-dropdown"
-                                                                    style="margin-bottom: 4px;">
-                                                                    <button type="button" class="btn-green"><i
-                                                                            class="fa-solid fa-file-export"></i> Export
-                                                                        <i class="fa-solid fa-caret-down"></i></button>
-                                                                    <div class="export-dropdown-content">
-                                                                        <a href="/export_seating_pdf/<%= exam.id %>"
-                                                                            style="color: #dc2626;"><i
-                                                                                class="fa-solid fa-file-pdf"></i> PDF
-                                                                            File</a>
-                                                                        <a href="/export_seating_excel/<%= exam.id %>"
-                                                                            style="color: #16a34a;"><i
-                                                                                class="fa-solid fa-file-excel"></i>
-                                                                            Excel Sheet</a>
-                                                                    </div>
-                                                                </div>
-
-                                                                <button type="button" class="btn-yellow"
-                                                                    style="margin-bottom: 4px;"
-                                                                    onclick="openEditExamModal('<%= exam.id %>', '<%= exam.subject %>', '<%= exam.branch %>', '<%= exam.semester %>', '<%= exam.room_id %>', '<%= exam.seat_color %>', '<%= exam.start_reg_no %>', '<%= exam.stop_reg_no %>', '<%= formattedDate %>', '<%= exam.start_time %>', '<%= exam.end_time %>')">
-                                                                    <i class="fa-solid fa-pen-to-square"></i> Edit
-                                                                </button>
-                                                                <form action="/delete_exam/<%= exam.id %>" method="POST"
-                                                                    style="margin: 0; display: inline;"
-                                                                    onsubmit="return confirm('Are you sure you want to delete exam for <%= exam.subject %>?');">
-                                                                    <button type="submit" class="btn-red"><i
-                                                                            class="fa-solid fa-trash"></i>
-                                                                        Delete</button>
-                                                                </form>
-                                                            </td>
                                 </tr>
-                                <% }) %>
+                            <% }); %>
+                        <% } %>
+                    </tbody>
                     </table>
                 </section>
 
