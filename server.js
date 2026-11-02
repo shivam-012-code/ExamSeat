@@ -1068,7 +1068,7 @@ app.post('/api/mcq/submit', isAuthenticated, async (req, res) => {
       selected_options: opts,
       feedback_msg: isCorrect
         ? '🎉 Congratulations! Your answer is correct.'
-        : '❌ wrong answer, please study well and focus on this topic'
+        : '❌ Wrong answer, please study well and focus on this topic.'
     });
   } catch (err) {
     console.error('Submit MCQ Error:', err);
